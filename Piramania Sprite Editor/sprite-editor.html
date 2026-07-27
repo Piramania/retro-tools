@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C64 Sprite Editor Deluxe</title>
+<style>
+@font-face{font-family:'C64';src:url('ressources/C64_Pro_Mono-STYLE.woff2') format('woff2')}
+:root{--c64-blue:#40318d;--c64-dark:#21155f;--c64-light:#7869c4;--c64-pale:#b8b1e8;--c64-white:#f2f0ff;--c64-yellow:#d6d66f;--c64-red:#b84b4b;--terminal:#8be28b;--ink:#171330}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:24px;color:var(--c64-white);background:linear-gradient(rgba(255,255,255,.025) 50%,rgba(0,0,0,.025) 50%) 0 0/100% 4px,var(--c64-blue);font-family:Arial,sans-serif}
+.wrap{max-width:1320px;margin:auto}
+.hero{margin-bottom:18px;padding:22px 24px;border:4px solid var(--c64-pale);background:var(--c64-dark);box-shadow:8px 8px 0 rgba(0,0,0,.3);text-align:center;font-family:'C64',monospace}
+.badge{display:inline-block;margin-bottom:10px;padding:4px 8px;color:var(--c64-yellow);border:2px solid var(--c64-yellow);text-transform:uppercase}
+h1{margin:0 0 10px;color:var(--c64-yellow);font-size:clamp(1.65rem,4vw,2.7rem);line-height:1.1;letter-spacing:.08em;text-transform:uppercase;text-shadow:3px 3px 0 #000}
+.subtitle{margin:0;color:var(--c64-pale);line-height:1.55}
+.app{display:grid;grid-template-columns:minmax(500px,auto) minmax(420px,1fr);gap:18px;align-items:start}
+.panel{margin-bottom:18px;padding:20px;color:var(--ink);background:var(--c64-pale);border:4px solid var(--c64-white);box-shadow:8px 8px 0 rgba(0,0,0,.28)}
+h2,h3{margin:0 0 14px;color:var(--c64-dark);text-transform:uppercase;letter-spacing:.04em;font-family:'C64',monospace}
+h3{margin-top:18px;font-size:1rem}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+label{display:flex;flex-direction:column;color:var(--c64-dark);font-weight:700;line-height:1.35}
+button,select,input{margin-top:5px;padding:10px 11px;border:3px solid var(--c64-dark);border-radius:0;background:var(--c64-white);color:var(--ink);font:700 .95rem/1.2 Arial,Courier,monospace;box-shadow:3px 3px 0 rgba(0,0,0,.22)}
+button{width:auto;cursor:pointer;text-transform:uppercase}
+button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,.28)}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(0,0,0,.25)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+button:focus,select:focus,input:focus,textarea:focus{outline:3px solid var(--c64-yellow);outline-offset:2px}
+.primary{background:var(--c64-dark);color:var(--c64-yellow);border-color:#09051f}
+.danger{color:#fff;background:var(--c64-red);border-color:#5a1717}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#sprite-grid-wrap{display:grid;grid-template-columns:34px auto;grid-template-rows:34px auto;width:max-content;align-items:stretch}
+#column-labels{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(8,18px) 3px repeat(8,18px) 3px repeat(8,18px);gap:1px;padding:4px 4px 3px;background:var(--c64-dark);border:4px solid var(--c64-white);border-bottom:0;box-shadow:6px 0 0 rgba(0,0,0,.28)}
+.column-label{width:18px;height:23px;display:flex;align-items:flex-end;justify-content:center;color:var(--c64-white);font:700 8px/1 Arial,sans-serif;writing-mode:vertical-rl;transform:rotate(180deg)}
+#row-labels{grid-column:1;grid-row:2;display:grid;grid-template-rows:repeat(21,18px);gap:1px;padding:4px 3px 4px 4px;background:var(--c64-dark);border:4px solid var(--c64-white);border-right:0;box-shadow:0 6px 0 rgba(0,0,0,.28)}
+.row-label{width:23px;height:18px;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;color:var(--c64-white);font:700 10px/1 Arial,sans-serif}
+#editor{grid-column:2;grid-row:2;display:grid;grid-template-columns:repeat(8,18px) 3px repeat(8,18px) 3px repeat(8,18px);grid-template-rows:repeat(21,18px);gap:1px;width:max-content;padding:4px;background:var(--c64-dark);border:4px solid var(--c64-white);box-shadow:6px 6px 0 rgba(0,0,0,.28);touch-action:none;user-select:none}
+.cell{width:18px;height:18px;background:#171330;cursor:crosshair;outline:1px solid rgba(184,177,232,.18)}
+.cell.pair-right{box-shadow:inset 1px 0 rgba(255,255,255,.28)}
+.group-spacer{width:3px;background:var(--c64-white)}
+.preview-area{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+.preview-box{padding:8px;background:var(--c64-dark);border:4px solid var(--c64-white);box-shadow:4px 4px 0 rgba(0,0,0,.25)}
+.preview-box span{display:block;margin-bottom:7px;color:var(--c64-yellow);font:12px/1.2 'C64',monospace;text-transform:uppercase}
+canvas{display:block;background:#000;image-rendering:pixelated}
+#preview{width:192px;height:168px}
+#previewNative{width:24px;height:21px}
+.brushes{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.brush{min-width:74px;padding:8px}
+.brush.active{outline:4px solid var(--c64-yellow);outline-offset:2px}
+textarea{width:100%;min-height:210px;resize:vertical;padding:14px;color:var(--terminal);background:#101010;border:4px solid var(--c64-dark);border-radius:0;box-shadow:inset 0 0 0 2px #000,4px 4px 0 rgba(0,0,0,.2);font:10px/1.4 'C64',ui-monospace,Consolas,monospace}
+.small,.note{padding:12px 14px;color:var(--ink);background:rgba(255,255,255,.55);border-left:8px solid var(--c64-yellow);font-size:13px;line-height:1.55}
+code{padding:1px 4px;background:rgba(33,21,95,.12);color:var(--c64-dark);font-weight:700}
+.byte-table{display:grid;grid-template-columns:42px repeat(3,1fr);gap:2px;padding:4px;background:var(--c64-dark);border:4px solid var(--c64-dark);font:12px/1.2 ui-monospace,Consolas,monospace;max-height:340px;overflow:auto}
+.byte-table div{padding:5px 7px;background:#101010;color:var(--terminal)}
+.byte-table .head{position:sticky;top:0;color:var(--c64-yellow);font-weight:700}
+.byte-table .rownum{color:var(--c64-white);text-align:right}
+.hidden{display:none!important}
+.status{margin-top:16px;padding:12px 14px;border:4px solid var(--c64-dark);background:#101010;color:var(--terminal);font:13px/1.4 'C64',monospace;min-height:46px}
+@media(max-width:1050px){.app{grid-template-columns:1fr}}
+.palette-control{display:flex;flex-direction:column;gap:6px;color:var(--c64-dark);font-weight:700}
+.palette-control select{display:none}
+.palette-grid{display:grid;grid-template-columns:repeat(8,24px);gap:4px;margin-top:5px;padding:7px;background:var(--c64-dark);border:3px solid var(--c64-dark);box-shadow:3px 3px 0 rgba(0,0,0,.22);width:max-content}
+.palette-swatch{width:24px;height:24px;margin:0;padding:0;border:2px solid rgba(255,255,255,.45);box-shadow:none;cursor:pointer;position:relative}
+.palette-swatch:hover{transform:translateY(-1px)}
+.palette-swatch.selected{outline:3px solid var(--c64-yellow);outline-offset:2px;z-index:1}
+.palette-value{font:700 12px/1.2 Arial,sans-serif;color:var(--c64-dark)}
+.editor-workspace{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap}
+.active-colors{display:flex;flex-direction:column;gap:10px;min-width:126px;padding:10px;background:var(--c64-dark);border:4px solid var(--c64-white);box-shadow:6px 6px 0 rgba(0,0,0,.28)}
+.active-colors-title{color:var(--c64-yellow);font:11px/1.3 'C64',monospace;text-transform:uppercase;text-align:center;margin-bottom:2px}
+.active-color{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:9px;width:100%;margin:0;padding:7px;border:3px solid var(--c64-pale);background:var(--c64-white);box-shadow:none;text-align:left;text-transform:none}
+.active-color:hover{transform:none;box-shadow:none;background:#fff}
+.active-color.selected{border-color:var(--c64-yellow);outline:3px solid var(--c64-yellow);outline-offset:2px}
+.active-color-chip{display:block;width:38px;height:38px;border:3px solid var(--c64-dark);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.active-color-label{display:block;color:var(--c64-dark);font:700 11px/1.25 Arial,sans-serif}
+#brush{display:none}
+
+@media(max-width:620px){body{padding:14px}.hero,.panel{padding:16px;box-shadow:5px 5px 0 rgba(0,0,0,.28)}.controls{grid-template-columns:1fr}#sprite-grid-wrap{grid-template-columns:28px auto;grid-template-rows:30px auto}#editor{grid-template-columns:repeat(8,13px) 3px repeat(8,13px) 3px repeat(8,13px);grid-template-rows:repeat(21,13px)}#column-labels{grid-template-columns:repeat(8,13px) 3px repeat(8,13px) 3px repeat(8,13px)}#row-labels{grid-template-rows:repeat(21,13px)}.cell{width:13px;height:13px}.column-label{width:13px;height:19px;font-size:7px}.row-label{width:17px;height:13px;font-size:8px}button{flex:1}}
+
+body.multicolor-grid #editor{
+  grid-template-columns:repeat(4,36px) 3px repeat(4,36px) 3px repeat(4,36px)
+}
+body.multicolor-grid #column-labels{
+  grid-template-columns:repeat(4,36px) 3px repeat(4,36px) 3px repeat(4,36px)
+}
+body.multicolor-grid .cell,
+body.multicolor-grid .column-label{width:36px}
+.palette-control{display:flex;flex-direction:column;gap:6px;color:var(--c64-dark);font-weight:700}
+.palette-control select{display:none}
+.palette-grid{display:grid;grid-template-columns:repeat(8,24px);gap:4px;margin-top:5px;padding:7px;background:var(--c64-dark);border:3px solid var(--c64-dark);box-shadow:3px 3px 0 rgba(0,0,0,.22);width:max-content}
+.palette-swatch{width:24px;height:24px;margin:0;padding:0;border:2px solid rgba(255,255,255,.45);box-shadow:none;cursor:pointer;position:relative}
+.palette-swatch:hover{transform:translateY(-1px)}
+.palette-swatch.selected{outline:3px solid var(--c64-yellow);outline-offset:2px;z-index:1}
+.palette-value{font:700 12px/1.2 Arial,sans-serif;color:var(--c64-dark)}
+
+@media(max-width:620px){
+  body.multicolor-grid #editor{
+    grid-template-columns:repeat(4,26px) 3px repeat(4,26px) 3px repeat(4,26px)
+  }
+  body.multicolor-grid #column-labels{
+    grid-template-columns:repeat(4,26px) 3px repeat(4,26px) 3px repeat(4,26px)
+  }
+  body.multicolor-grid .cell,
+  body.multicolor-grid .column-label{width:26px}
+}
+
+
+.animation-controls{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.frame-strip{display:flex;gap:10px;overflow-x:auto;padding:8px 4px 14px;scrollbar-color:var(--c64-light) var(--c64-dark)}
+.frame-card{flex:0 0 auto;width:92px;padding:7px;border:3px solid var(--c64-dark);background:var(--c64-white);box-shadow:3px 3px 0 rgba(0,0,0,.22);cursor:pointer;text-align:center;color:var(--c64-dark);font-weight:700}
+.frame-card.active{outline:4px solid var(--c64-yellow);outline-offset:2px;background:#fff}
+.frame-card canvas{width:72px;height:63px;margin:auto;background:#000;border:2px solid var(--c64-dark)}
+.frame-card span{display:block;margin-top:5px;font:11px/1.2 'C64',monospace}
+.animation-screen{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.animation-screen canvas{width:192px;height:168px;border:4px solid var(--c64-white);box-shadow:4px 4px 0 rgba(0,0,0,.25)}
+.animation-readout{min-width:160px;padding:12px;background:#101010;color:var(--terminal);border:4px solid var(--c64-dark);font:12px/1.55 'C64',monospace}
+.compact-tools{margin-top:8px}
+.palette-control{display:flex;flex-direction:column;gap:6px;color:var(--c64-dark);font-weight:700}
+.palette-control select{display:none}
+.palette-grid{display:grid;grid-template-columns:repeat(8,24px);gap:4px;margin-top:5px;padding:7px;background:var(--c64-dark);border:3px solid var(--c64-dark);box-shadow:3px 3px 0 rgba(0,0,0,.22);width:max-content}
+.palette-swatch{width:24px;height:24px;margin:0;padding:0;border:2px solid rgba(255,255,255,.45);box-shadow:none;cursor:pointer;position:relative}
+.palette-swatch:hover{transform:translateY(-1px)}
+.palette-swatch.selected{outline:3px solid var(--c64-yellow);outline-offset:2px;z-index:1}
+.palette-value{font:700 12px/1.2 Arial,sans-serif;color:var(--c64-dark)}
+
+@media(max-width:620px){.animation-controls{grid-template-columns:1fr}.frame-card{width:80px}.frame-card canvas{width:60px;height:53px}}
+
+
+.onion-controls{margin-top:10px;padding:10px;background:rgba(255,255,255,.12);border:3px solid var(--c64-dark);display:flex;gap:14px;align-items:end;flex-wrap:wrap}
+.onion-controls label{min-width:150px}
+.onion-toggle{display:flex;align-items:center;gap:8px;min-height:38px;font-weight:700}
+.onion-toggle input{width:20px;height:20px;accent-color:var(--c64-yellow)}
+.onion-legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:7px;font-size:12px}
+.onion-dot{display:inline-block;width:13px;height:13px;border:2px solid var(--c64-dark);vertical-align:-2px;margin-right:4px}
+.onion-dot.prev{background:#ff6f91}.onion-dot.next{background:#64d8ff}
+
+
+.export-wizard{display:grid;gap:14px}
+.export-target-help{margin:-6px 0 0;padding:10px 12px;border:3px solid var(--c64-dark);background:var(--c64-light);font-weight:700;line-height:1.35}
+.legacy-export-note{margin:0;font-size:12px;opacity:.82}
+.export-advanced{border:3px solid var(--c64-dark);background:var(--c64-light);padding:8px 10px}
+.export-advanced summary{cursor:pointer;font-weight:700}
+.export-advanced .wizard-options{margin-top:10px}
+.wizard-grid{display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:12px}
+.wizard-options{display:grid;grid-template-columns:repeat(2,minmax(170px,1fr));gap:8px;padding:12px;border:3px solid var(--c64-dark);background:rgba(255,255,255,.38)}
+.wizard-check{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:700}
+.wizard-check input{width:19px;height:19px;margin:0;box-shadow:none;accent-color:var(--c64-dark)}
+.export-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.export-stat{padding:9px;border:3px solid var(--c64-dark);background:var(--c64-white);text-align:center;font-weight:700}
+.export-stat strong{display:block;color:var(--c64-dark);font:18px/1.2 'C64',monospace}
+.warning{padding:10px 12px;background:#fff0ba;border-left:8px solid #b84b4b;font-size:13px;line-height:1.45}
+#output{min-height:330px}
+.palette-control{display:flex;flex-direction:column;gap:6px;color:var(--c64-dark);font-weight:700}
+.palette-control select{display:none}
+.palette-grid{display:grid;grid-template-columns:repeat(8,24px);gap:4px;margin-top:5px;padding:7px;background:var(--c64-dark);border:3px solid var(--c64-dark);box-shadow:3px 3px 0 rgba(0,0,0,.22);width:max-content}
+.palette-swatch{width:24px;height:24px;margin:0;padding:0;border:2px solid rgba(255,255,255,.45);box-shadow:none;cursor:pointer;position:relative}
+.palette-swatch:hover{transform:translateY(-1px)}
+.palette-swatch.selected{outline:3px solid var(--c64-yellow);outline-offset:2px;z-index:1}
+.palette-value{font:700 12px/1.2 Arial,sans-serif;color:var(--c64-dark)}
+
+@media(max-width:620px){.wizard-grid,.wizard-options,.export-summary{grid-template-columns:1fr}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero"><div class="badge">Piramania Presents</div><h1>Commodore Sprite Editor</h1><p class="subtitle">Draw, transform, preview, import and export standard Commodore 64 sprites.</p></header>
+<div class="app">
+<section class="panel">
+<h2>Sprite Editor</h2>
+<div class="controls">
+<label>Sprite mode<select id="mode"><option value="single">Single color (24×21)</option><option value="multi">Multicolor (12×21 double pixels)</option></select></label>
+<select id="brush" aria-label="Active drawing color"><option value="1">Sprite color</option></select>
+<div class="palette-control">Background color<select id="bgColor"></select><div class="palette-grid" data-select="bgColor"></div><span class="palette-value" data-value="bgColor"></span></div>
+<div class="palette-control">Sprite color<select id="spriteColor"></select><div class="palette-grid" data-select="spriteColor"></div><span class="palette-value" data-value="spriteColor"></span></div>
+<div class="palette-control multi-only">Multicolor 1<select id="multi1Color"></select><div class="palette-grid" data-select="multi1Color"></div><span class="palette-value" data-value="multi1Color"></span></div>
+<div class="palette-control multi-only">Multicolor 2<select id="multi2Color"></select><div class="palette-grid" data-select="multi2Color"></div><span class="palette-value" data-value="multi2Color"></span></div>
+</div>
+<div class="editor-workspace">
+<div id="sprite-grid-wrap"><div></div><div id="column-labels" aria-hidden="true"></div><div id="row-labels" aria-hidden="true"></div><div id="editor" aria-label="Sprite drawing grid"></div></div>
+<div id="activeColors" class="active-colors" aria-label="Active drawing colors"><div class="active-colors-title">Drawing color</div></div>
+</div>
+<div class="tools">
+<button id="undoBtn">Undo</button><button id="redoBtn">Redo</button><button id="clearBtn" class="danger">Clear</button><button id="invertBtn">Invert</button>
+<button id="mirrorHBtn">Mirror H</button><button id="mirrorVBtn">Mirror V</button><button id="rotateCwBtn">Rotate ↻</button><button id="rotateCcwBtn">Rotate ↺</button>
+<button id="shiftLeftBtn">←</button><button id="shiftRightBtn">→</button><button id="shiftUpBtn">↑</button><button id="shiftDownBtn">↓</button>
+</div>
+<p class="small">Choose a drawing color from the square fields beside the grid. Hold the left mouse button to draw continuously. Select Background, right-click, or hold Alt to erase. In multicolor mode, the editor switches to a 12×21 grid. Each cell represents one double-width C64 multicolor pixel.</p>
+<h3>Current Frame Preview</h3>
+<div class="preview-area"><div class="preview-box"><span>8× preview</span><canvas id="preview" width="192" height="168"></canvas></div><div class="preview-box"><span>Native 1:1</span><canvas id="previewNative" width="24" height="21"></canvas></div></div>
+<h3>Animation Frames</h3>
+<div class="animation-controls">
+<label>Playback speed<input id="fps" type="number" value="8" min="1" max="50" step="1"></label>
+<label>Playback<select id="loopMode"><option value="loop">Loop</option><option value="pingpong">Ping-pong</option><option value="once">Play once</option></select></label>
+
+</div>
+<div class="tools compact-tools"><button id="prevFrameBtn">Previous</button><button id="nextFrameBtn">Next</button><button id="addFrameBtn">New Frame</button><button id="duplicateFrameBtn">Duplicate</button><button id="deleteFrameBtn" class="danger">Delete</button><button id="playBtn" class="primary">Play</button></div>
+<div class="onion-controls">
+<label class="onion-toggle"><input id="onionEnabled" type="checkbox"> Onion skin</label>
+<label>Onion source<select id="onionSource"><option value="previous">Previous frame</option><option value="next">Next frame</option><option value="both">Previous + next</option></select></label>
+<label>Onion opacity<input id="onionOpacity" type="range" min="10" max="70" value="35" step="5"><span id="onionOpacityReadout">35%</span></label>
+</div>
+<div class="onion-legend"><span><i class="onion-dot prev"></i>Previous frame</span><span><i class="onion-dot next"></i>Next frame</span><span>Onion skin appears only in the drawing grid.</span></div>
+<div id="frameStrip" class="frame-strip" aria-label="Animation frames"></div>
+<h3>Live Animation Preview</h3>
+<div class="animation-screen"><canvas id="animationPreview" width="192" height="168"></canvas><div id="animationReadout" class="animation-readout">FRAME 1 / 1<br>8 FPS<br>STOPPED</div></div>
+<h3>Binary Sprite File</h3>
+<div class="tools"><button id="loadBinaryBtn">Load .SPR / .BIN</button><button id="saveBinaryBtn" class="primary">Save Current .SPR</button><button id="saveAnimationBtn">Save Animation .BIN</button><input id="binaryPicker" class="hidden" type="file" accept=".spr,.bin,application/octet-stream"></div>
+<p class="small">A single .SPR contains 63 sprite bytes plus one padding byte. Animation .BIN files contain one 64-byte block per frame and can be loaded back into the editor.</p>
+<div id="status" class="status">READY.</div>
+</section>
+<section class="panel">
+<h2>Export Wizard</h2>
+<div class="export-wizard">
+<div class="wizard-grid">
+<label>Export target<select id="exportTarget">
+<optgroup label="MEGA65 BASIC 65">
+<option value="mega65-production" selected>Runnable BASIC program</option>
+<option value="mega65-include-loader">BASIC include with loader subroutine</option>
+<option value="mega65-include-data">BASIC sprite DATA only</option>
+<option value="mega65-data">Standalone DATA loader</option>
+</optgroup>
+<optgroup label="Commodore and assembler formats">
+<option value="basic">Commodore BASIC DATA</option>
+<option value="kick">KickAssembler</option>
+<option value="acme">ACME</option>
+<option value="64tass">64tass</option>
+<option value="ca65">ca65</option>
+<option value="dasm">DASM</option>
+<option value="c">C / cc65 array</option>
+<option value="hex">Plain hexadecimal</option>
+<option value="decimal">Plain decimal</option>
+<option value="binary">Raw 64-byte sprite blocks</option>
+</optgroup>
+</select></label>
+<label>Export scope<select id="wizardScope"><option value="all">All animation frames</option><option value="current">Current frame only</option></select></label>
+<label>Asset name<input id="assetName" type="text" value="player_walk" maxlength="32"></label>
+<label>Bytes per line<input id="perLine" type="number" value="8" min="1" max="21"></label>
+<label class="basic-option">First BASIC line<input id="lineStart" type="number" value="1000" min="0" step="10"></label>
+<label class="pointer-option">Sprite data address<input id="baseAddress" type="text" value="$3000"></label>
+<label class="mega-option">Sprite number<select id="megaSprite"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+<label class="mega-option">MEGA65 coordinates<input id="megaPosition" type="text" value="40,80"></label>
+</div>
+<p id="exportTargetHelp" class="export-target-help"></p>
+<div id="frameUsageOptions" class="wizard-options hidden">
+<label class="wizard-check"><input type="radio" name="frameUsage" value="animation" checked> Treat frames as animation</label>
+<label class="wizard-check"><input type="radio" name="frameUsage" value="sprites"> Treat frames as separate hardware sprites</label>
+</div>
+<div class="wizard-options">
+<label class="wizard-check"><input id="includeLabels" type="checkbox" checked> Include frame labels</label>
+<label class="wizard-check"><input id="includeComments" type="checkbox" checked> Include comments</label>
+<label class="wizard-check"><input id="includePadding" type="checkbox" checked> Include 64th padding byte</label>
+<label class="wizard-check"><input id="generatePointers" type="checkbox"> Generate sprite pointers</label>
+<label class="wizard-check"><input id="removeDuplicates" type="checkbox" checked> Remove duplicate frames</label>
+<label class="wizard-check hidden"><input id="animationTable" type="checkbox" checked> Create animation table automatically</label>
+</div>
+<div id="exportWarning" class="warning hidden"></div>
+<div class="export-summary"><div class="export-stat"><strong id="statFrames">1</strong>Frames</div><div class="export-stat"><strong id="statUnique">1</strong>Unique sprites</div><div class="export-stat"><strong id="statBytes">64</strong>Bytes</div></div>
+<textarea id="output" spellcheck="false"></textarea>
+<div class="tools"><button id="copyBtn" class="primary">Copy Export</button><button id="downloadExportBtn">Download Export</button></div>
+</div>
+<h3>Row / Byte Map</h3><label style="max-width:220px">Byte table<select id="showHex"><option value="yes">Show</option><option value="no">Hide</option></select></label><div id="byteTable" class="byte-table"></div>
+<h2 style="margin-top:24px">Data Import</h2>
+<p class="small">Paste at least 63 decimal or hexadecimal byte values, for example <code>$3C</code>, <code>0x3C</code> or <code>60</code>.</p>
+<textarea id="importBox" spellcheck="false" placeholder="Paste sprite data here..."></textarea>
+<div class="tools"><button id="importBtn" class="primary">Import Data</button></div>
+</section>
+</div></div>
+<script>
+(() => {
+'use strict';
+const W=24,H=21,BYTES=63;
+const C64_COLORS=[['0 Black','#000000'],['1 White','#ffffff'],['2 Red','#813338'],['3 Cyan','#75cec8'],['4 Purple','#8e3c97'],['5 Green','#56ac4d'],['6 Blue','#2e2c9b'],['7 Yellow','#edf171'],['8 Orange','#8e5029'],['9 Brown','#553800'],['10 Light red','#c46c71'],['11 Dark grey','#4a4a4a'],['12 Grey','#7b7b7b'],['13 Light green','#a9ff9f'],['14 Light blue','#706deb'],['15 Light grey','#b2b2b2']];
+const $=id=>document.getElementById(id);
+const editor=$('editor'),columnLabels=$('column-labels'),rowLabels=$('row-labels'),preview=$('preview'),previewNative=$('previewNative'),animationPreview=$('animationPreview'),output=$('output'),importBox=$('importBox'),byteTable=$('byteTable'),modeEl=$('mode'),brushEl=$('brush'),statusEl=$('status'),frameStrip=$('frameStrip'),onionEnabled=$('onionEnabled'),onionSource=$('onionSource'),onionOpacity=$('onionOpacity');
+const blankGrid=()=>Array.from({length:H},()=>Array(W).fill(0));
+let frames=[{mode:'single',data:blankGrid()}],currentFrame=0;
+let mouseDown=false,lastPainted='',lastPaintX=null,lastPaintY=null,dragSnapshotTaken=false,dragPaintValue=1,undoStack=[],redoStack=[];
+let playing=false,playTimer=null,playIndex=0,playDirection=1,lastUiMode='single';
+const grid=()=>frames[currentFrame].data;
+function colorOptions(selected){return C64_COLORS.map(([n],i)=>`<option value="${i}" ${i===selected?'selected':''}>${n}</option>`).join('')}
+$('bgColor').innerHTML=colorOptions(6);$('spriteColor').innerHTML=colorOptions(13);$('multi1Color').innerHTML=colorOptions(1);$('multi2Color').innerHTML=colorOptions(7);
+function syncPaletteControl(id){const select=$(id),value=+select.value,grid=document.querySelector(`.palette-grid[data-select="${id}"]`),readout=document.querySelector(`[data-value="${id}"]`);if(!grid)return;grid.querySelectorAll('.palette-swatch').forEach((b,i)=>b.classList.toggle('selected',i===value));if(readout)readout.textContent=C64_COLORS[value][0]}
+function buildPaletteControls(){document.querySelectorAll('.palette-grid').forEach(grid=>{const id=grid.dataset.select,select=$(id);grid.innerHTML='';C64_COLORS.forEach(([name,color],i)=>{const b=document.createElement('button');b.type='button';b.className='palette-swatch';b.style.background=color;b.title=name;b.setAttribute('aria-label',name);b.onclick=()=>{select.value=String(i);select.dispatchEvent(new Event('input',{bubbles:true}));syncPaletteControl(id)};grid.appendChild(b)});select.addEventListener('change',()=>syncPaletteControl(id));syncPaletteControl(id)})}
+function activeColorDefinitions(){return modeEl.value==='multi'?[['Background',0,'bgColor'],['Multicolor 1',1,'multi1Color'],['Sprite color',2,'spriteColor'],['Multicolor 2',3,'multi2Color']]:[['Background',0,'bgColor'],['Sprite color',1,'spriteColor']]}
+function renderActiveColors(){const host=$('activeColors');if(!host)return;const title=host.querySelector('.active-colors-title');host.innerHTML='';host.appendChild(title||Object.assign(document.createElement('div'),{className:'active-colors-title',textContent:'Drawing color'}));activeColorDefinitions().forEach(([label,value,colorId])=>{const colorIndex=+$(colorId).value,b=document.createElement('button');b.type='button';b.className='active-color'+(+brushEl.value===value?' selected':'');b.dataset.brush=String(value);b.title=`Draw with ${label.toLowerCase()}`;b.innerHTML=`<span class="active-color-chip" style="background:${C64_COLORS[colorIndex][1]}"></span><span class="active-color-label">${label}<br>${C64_COLORS[colorIndex][0]}</span>`;b.onclick=()=>{brushEl.value=String(value);renderActiveColors();setStatus(`${label.toUpperCase()} SELECTED FOR DRAWING.`)};host.appendChild(b)})}
+buildPaletteControls();
+function projectSnapshot(){return {frames:frames.map(f=>({mode:f.mode,data:f.data.map(r=>r.slice())})),currentFrame}}
+function restoreProject(s){frames=s.frames.map(f=>({mode:f.mode,data:f.data.map(r=>r.slice())}));currentFrame=Math.min(s.currentFrame,frames.length-1);syncFrameMode();makeGrid();render()}
+function pushUndo(){undoStack.push(projectSnapshot());if(undoStack.length>100)undoStack.shift();redoStack=[];updateHistoryButtons()}
+function updateHistoryButtons(){$('undoBtn').disabled=!undoStack.length;$('redoBtn').disabled=!redoStack.length}
+function setStatus(t){statusEl.textContent=t}
+function syncFrameMode(){modeEl.value=frames[currentFrame].mode;updateModeUi()}
+function makeGrid(){
+ editor.innerHTML='';columnLabels.innerHTML='';rowLabels.innerHTML='';
+ const multi=modeEl.value==='multi',cols=multi?12:24;
+ document.body.classList.toggle('multicolor-grid',multi);
+ const labels=multi?[1,2,3,4,1,2,3,4,1,2,3,4]:[128,64,32,16,8,4,2,1,128,64,32,16,8,4,2,1,128,64,32,16,8,4,2,1];
+ for(let i=0;i<cols;i++){const l=document.createElement('div');l.className='column-label';l.textContent=labels[i];columnLabels.appendChild(l);if((multi&&(i===3||i===7))||(!multi&&(i===7||i===15))){const s=document.createElement('div');s.className='group-spacer';columnLabels.appendChild(s)}}
+ for(let y=0;y<H;y++){const rl=document.createElement('div');rl.className='row-label';rl.textContent=y+1;rowLabels.appendChild(rl);for(let i=0;i<cols;i++){const c=document.createElement('div');c.className='cell';c.dataset.x=multi?i*2:i;c.dataset.y=y;editor.appendChild(c);if((multi&&(i===3||i===7))||(!multi&&(i===7||i===15))){const s=document.createElement('div');s.className='group-spacer';editor.appendChild(s)}}}
+}
+function setPixel(x,y,v){if(x<0||x>=W||y<0||y>=H)return;const g=grid();if(modeEl.value==='multi'){const px=x&~1;g[y][px]=v;g[y][px+1]=v}else g[y][x]=v?1:0}
+function cellFromPointer(e){const el=document.elementFromPoint(e.clientX,e.clientY);return el?el.closest('.cell'):null}
+function paintLine(x0,y0,x1,y1,v){let dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1,err=dx+dy;while(true){setPixel(x0,y0,v);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx}if(e2<=dx){err+=dx;y0+=sy}}}
+function handlePaint(e){const c=cellFromPointer(e);if(!c||!editor.contains(c))return;let x=+c.dataset.x,y=+c.dataset.y;if(modeEl.value==='multi')x&=~1;const key=x+','+y;if(key===lastPainted)return;if(!dragSnapshotTaken){pushUndo();dragSnapshotTaken=true}if(lastPaintX===null) setPixel(x,y,dragPaintValue);else paintLine(lastPaintX,lastPaintY,x,y,dragPaintValue);lastPaintX=x;lastPaintY=y;lastPainted=key;render()}
+editor.addEventListener('contextmenu',e=>e.preventDefault());editor.addEventListener('pointerdown',e=>{if(!e.target.closest('.cell'))return;mouseDown=true;lastPainted='';lastPaintX=null;lastPaintY=null;dragSnapshotTaken=false;dragPaintValue=(e.button===2||e.altKey)?0:+brushEl.value;editor.setPointerCapture(e.pointerId);handlePaint(e)});editor.addEventListener('pointermove',e=>{if(mouseDown)handlePaint(e)});function endDraw(e){mouseDown=false;lastPainted='';lastPaintX=null;lastPaintY=null;dragSnapshotTaken=false;try{editor.releasePointerCapture(e.pointerId)}catch(_){}}editor.addEventListener('pointerup',endDraw);editor.addEventListener('pointercancel',endDraw);
+function spriteBytes(frame=frames[currentFrame]){const bytes=[],g=frame.data;if(frame.mode==='single'){for(let y=0;y<H;y++)for(let group=0;group<3;group++){let b=0;for(let bit=0;bit<8;bit++)if(g[y][group*8+bit])b|=128>>bit;bytes.push(b)}}else{for(let y=0;y<H;y++)for(let group=0;group<3;group++){let b=0;for(let pair=0;pair<4;pair++){const x=group*8+pair*2;b|=(g[y][x]&3)<<(6-pair*2)}bytes.push(b)}}return bytes}
+function decodeBytes(bytes,mode){const data=blankGrid();if(mode==='single'){for(let y=0;y<H;y++)for(let group=0;group<3;group++){const b=bytes[y*3+group]||0;for(let bit=0;bit<8;bit++)data[y][group*8+bit]=(b&(128>>bit))?1:0}}else{for(let y=0;y<H;y++)for(let group=0;group<3;group++){const b=bytes[y*3+group]||0;for(let pair=0;pair<4;pair++){const v=(b>>(6-pair*2))&3,x=group*8+pair*2;data[y][x]=data[y][x+1]=v}}}return data}
+function loadBytes(bytes){pushUndo();frames[currentFrame].data=decodeBytes(bytes,modeEl.value);render()}
+function parseImport(text){return (text.match(/\$[0-9a-fA-F]{1,2}|0x[0-9a-fA-F]{1,2}|\b\d{1,3}\b/g)||[]).map(v=>v.startsWith('$')?parseInt(v.slice(1),16):v.toLowerCase().startsWith('0x')?parseInt(v.slice(2),16):parseInt(v,10)).filter(n=>Number.isFinite(n)&&n>=0&&n<=255)}
+function cleanName(){let n=$('assetName').value.trim().replace(/[^A-Za-z0-9_]/g,'_').replace(/^([0-9])/,'_$1');return n||'sprite_animation'}
+function selectedFrames(){return $('wizardScope').value==='current'?[frames[currentFrame]]:frames.slice()}
+function hex2(n,prefix='$'){return prefix+n.toString(16).toUpperCase().padStart(2,'0')}
+function parseAddress(){const t=$('baseAddress').value.trim();let n=t.startsWith('$')?parseInt(t.slice(1),16):t.toLowerCase().startsWith('0x')?parseInt(t.slice(2),16):parseInt(t,10);return Number.isFinite(n)?Math.max(0,Math.min(65535,n)):0x3000}
+function exportModel(){
+ const source=selectedFrames(),blocks=source.map(f=>[...spriteBytes(f),0]),remove=$('removeDuplicates').checked;
+ const unique=[],map=[];
+ for(const b of blocks){let idx=remove?unique.findIndex(u=>u.every((v,i)=>v===b[i])):-1;if(idx<0){idx=unique.length;unique.push(b)}map.push(idx)}
+ return {source,blocks,unique:remove?unique:blocks,map:remove?map:blocks.map((_,i)=>i)}
+}
+function chunks(arr,n){const r=[];for(let i=0;i<arr.length;i+=n)r.push(arr.slice(i,i+n));return r}
+function exportBasicData(model,mega=false){const start=+$('lineStart').value||1000,n=Math.max(1,Math.min(21,+$('perLine').value||8)),includePad=$('includePadding').checked,bytes=model.unique.flatMap(b=>includePad?b:b.slice(0,63)),lines=[];for(let i=0;i<bytes.length;i+=n)lines.push(`${start+(i/n)*10} DATA ${bytes.slice(i,i+n).join(',')}`);if(mega&&$('includeComments').checked)lines.unshift(`${Math.max(0,start-10)} REM 64-BYTE SPRITE BLOCKS FOR BASIC 65`);return lines.join('\n')}
+function asmExport(model,target){
+ const name=cleanName(),n=Math.max(1,+$('perLine').value||8),labels=$('includeLabels').checked,comments=$('includeComments').checked,pad=$('includePadding').checked;
+ const directives={kick:'.byte',acme:'!byte','64tass':'.byte',ca65:'.byte',dasm:'dc.b'},d=directives[target],comment=target==='acme'||target==='64tass'?';':';',lines=[];
+ if(comments)lines.push(`${comment} ${name}: ${model.source.length} frame(s), ${model.unique.length} unique sprite block(s)`);
+ model.unique.forEach((b,i)=>{if(labels)lines.push(`${name}_frame_${i}:`);for(const c of chunks(pad?b:b.slice(0,63),n))lines.push(`    ${d} ${c.map(v=>hex2(v)).join(',')}`);lines.push('')});
+ if($('animationTable').checked&&model.map.length>1){lines.push(`${name}_animation:`);for(const c of chunks(model.map,n))lines.push(`    ${d} ${c.map(v=>hex2(v)).join(',')}`)}
+ if($('generatePointers').checked){const ptr=Math.floor(parseAddress()/64);lines.push('',`${name}_first_pointer = ${hex2(ptr)}`);if(model.unique.length>1)lines.push(`${comment} Consecutive 64-byte blocks use pointer +0 through +${model.unique.length-1}`)}
+ return lines.join('\n').trim()
+}
+function cExport(model){const name=cleanName(),n=Math.max(1,+$('perLine').value||8),pad=$('includePadding').checked,bytes=model.unique.flatMap(b=>pad?b:b.slice(0,63)),lines=[];if($('includeComments').checked)lines.push(`/* ${model.source.length} frame(s), ${model.unique.length} unique sprite block(s) */`);lines.push(`const unsigned char ${name}_sprites[] = {`);chunks(bytes,n).forEach(c=>lines.push('    '+c.map(v=>'0x'+v.toString(16).toUpperCase().padStart(2,'0')).join(', ')+','));lines.push('};');if($('animationTable').checked&&model.map.length>1){lines.push('',`const unsigned char ${name}_animation[] = { ${model.map.join(', ')} };`)}return lines.join('\n')}
+function mega65Data(model){
+ const name=cleanName().toUpperCase(),start=+$('lineStart').value||1000,n=Math.max(1,Math.min(21,+$('perLine').value||8)),lines=[],dataStart=start+500,all=model.unique.flatMap(b=>b),count=model.unique.length;
+ lines.push(`${start} REM ${name} - MEGA65 BASIC 65 SPRITE DATA`);
+ lines.push(`${start+10} DIM FR$(${count-1})`);
+ lines.push(`${start+20} FOR F=0 TO ${count-1}`);
+ lines.push(`${start+30} A$=""`);
+ lines.push(`${start+40} FOR I=0 TO 63:READ B:A$=A$+CHR$(B):NEXT I`);
+ lines.push(`${start+50} FR$(F)=A$:NEXT F`);
+ lines.push(`${start+60} REM COPY FRAME F INTO HARDWARE SPRITE WITH: SPRSAV FR$(F),${$('megaSprite').value}`);
+ let ln=dataStart;for(const c of chunks(all,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10}return lines.join('\n')
+}
+function mega65IncludeModel(){
+ const source=selectedFrames(),dedup=$('removeDuplicates').checked,unique=[],seq=[];
+ for(const frame of source){
+  const block=[...spriteBytes(frame),0],mode=frame.mode==='multi'?1:0;
+  let idx=-1;
+  if(dedup)idx=unique.findIndex(u=>u.mode===mode&&u.block.every((v,i)=>v===block[i]));
+  if(idx<0){idx=unique.length;unique.push({block,mode})}
+  seq.push(idx);
+ }
+ return {source,unique,seq};
+}
+function mega65IncludeData(){
+ const name=cleanName().toUpperCase(),start=+$('lineStart').value||1000,n=Math.max(1,Math.min(21,+$('perLine').value||8)),comments=$('includeComments').checked,labels=$('includeLabels').checked,animation=$('animationTable').checked,inc=mega65IncludeModel(),lines=[];
+ let ln=start;
+ if(comments){
+  lines.push(`${ln} REM ==================================================`);ln+=10;
+  lines.push(`${ln} REM ${name} - MEGA65 BASIC 65 SPRITE INCLUDE DATA`);ln+=10;
+  lines.push(`${ln} REM ${inc.source.length} FRAME(S), ${inc.unique.length} UNIQUE SPRITE(S)`);ln+=10;
+  lines.push(`${ln} REM EACH SPRITE USES 64 BYTE VALUES FOLLOWED BY MODE`);ln+=10;
+  lines.push(`${ln} REM MODE 0=SINGLE-COLOR, MODE 1=MULTICOLOR`);ln+=10;
+  if(animation) {lines.push(`${ln} REM THE FINAL DATA VALUES FORM THE FRAME SEQUENCE`);ln+=10;}
+  lines.push(`${ln} REM ==================================================`);ln+=10;
+ }
+ inc.unique.forEach((u,i)=>{
+  if(labels){lines.push(`${ln} REM ${name}_SPRITE_${i}`);ln+=10;}
+  for(const c of chunks(u.block,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10;}
+  lines.push(`${ln} DATA ${u.mode}`);ln+=10;
+ });
+ if(animation&&inc.seq.length>1){
+  if(labels){lines.push(`${ln} REM ${name}_ANIMATION_SEQUENCE`);ln+=10;}
+  for(const c of chunks(inc.seq,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10;}
+ }
+ return lines.join('\n');
+}
+function mega65IncludeLoader(){
+ const name=cleanName().toUpperCase(),start=+$('lineStart').value||1000,n=Math.max(1,Math.min(21,+$('perLine').value||8)),comments=$('includeComments').checked,animation=$('animationTable').checked,inc=mega65IncludeModel(),lines=[],dataStart=start+1000;
+ const add=(offset,text)=>lines.push(`${start+offset} ${text}`);
+ let off=0,callLine=-1,skipLine=-1;
+ if(comments){
+  add(off,'REM ==================================================');off+=10;
+  add(off,`REM ${name} - MEGA65 BASIC 65 SPRITE LOADER`);off+=10;
+  callLine=lines.length;add(off,'REM CALL ONCE WITH: GOSUB 0');off+=10;
+  add(off,'REM RETURNS FR$(), MD() AND OPTIONAL AN() ARRAYS');off+=10;
+  add(off,'REM CALL THIS BEFORE OTHER READ OPERATIONS');off+=10;
+  add(off,'REM NORMAL PROGRAM FLOW SKIPS OVER THE SUBROUTINE');off+=10;
+  add(off,'REM ==================================================');off+=10;
+ }
+ skipLine=lines.length;add(off,'GOTO 0');off+=10;
+ const entry=start+off;
+ add(off,`UC=${inc.unique.length}:FC=${inc.seq.length}`);off+=10;
+ add(off,`DIM FR$(${inc.unique.length-1}):DIM MD(${inc.unique.length-1})`);off+=10;
+ add(off,`FOR U=0 TO ${inc.unique.length-1}`);off+=10;
+ add(off,'A$=""');off+=10;
+ add(off,'FOR I=0 TO 63:READ B:A$=A$+CHR$(B):NEXT I');off+=10;
+ add(off,'FR$(U)=A$:READ MD(U):NEXT U');off+=10;
+ if(animation&&inc.seq.length>1){
+  add(off,`DIM AN(${inc.seq.length-1})`);off+=10;
+  add(off,`FOR I=0 TO ${inc.seq.length-1}:READ AN(I):NEXT I`);off+=10;
+ }
+ add(off,'RETURN');
+ let ln=dataStart;
+ if(comments){lines.push(`${ln-10} REM ---- SPRITE DATA: 64 BYTES + MODE ----`);}
+ for(const u of inc.unique){
+  for(const c of chunks(u.block,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10;}
+  lines.push(`${ln} DATA ${u.mode}`);ln+=10;
+ }
+ if(animation&&inc.seq.length>1){
+  if(comments){lines.push(`${ln} REM ---- ANIMATION SEQUENCE ----`);ln+=10;}
+  for(const c of chunks(inc.seq,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10;}
+ }
+ const exitLine=ln;
+ lines.push(`${exitLine} REM ---- END OF SPRITE INCLUDE ----`);
+ lines[skipLine]=`${start+(comments?70:0)} GOTO ${exitLine}`;
+ if(callLine>=0) lines[callLine]=`${start+20} REM CALL ONCE WITH: GOSUB ${entry}`;
+ return lines.join('\n');
+}
+function mega65Production(){
+ const name=cleanName().toUpperCase(),start=+$('lineStart').value||1000,n=Math.max(1,Math.min(21,+$('perLine').value||8)),firstSprite=Math.max(0,Math.min(7,+$('megaSprite').value||0)),pos=$('megaPosition').value.match(/\d+/g)||['40','80'],baseX=+(pos[0]||40),baseY=+(pos[1]||80),fps=Math.max(1,Math.min(50,+$('fps').value||8)),delay=Math.max(.02,Math.round((1/fps)*10000)/10000),source=selectedFrames(),dedup=$('removeDuplicates').checked,sc=+$('spriteColor').value,mc1=+$('multi1Color').value,mc2=+$('multi2Color').value,hasMulti=source.some(f=>f.mode==='multi'),comments=$('includeComments').checked,loopMode=$('loopMode').value,usage=(document.querySelector('input[name="frameUsage"]:checked')||{}).value||'animation';
+ const lines=[],dataStart=start+2000,add=(offset,text)=>lines.push(`${start+offset} ${text}`);
+ if(usage==='sprites'&&source.length>1){
+  const capacity=8-firstSprite,count=Math.min(source.length,capacity),active=source.slice(0,count);
+  if(comments){add(0,'REM ==================================================');add(10,`REM ${name} - MEGA65 BASIC 65 MULTIPLE SPRITES`);add(20,'REM GENERATED BY C64 GRAPHICS STUDIO');add(30,`REM FRAMES ARE LOADED INTO HARDWARE SPRITES ${firstSprite}-${firstSprite+count-1}`);add(40,'REM ==================================================')}
+  const cfg=comments?60:0;
+  add(cfg,`FS=${firstSprite}:SX=${baseX}:SY=${baseY}:FC=${count}`);add(cfg+10,'SPRITE CLR');add(cfg+20,`DIM FR$(${count-1}):DIM MD(${count-1})`);add(cfg+30,`FOR F=0 TO ${count-1}`);add(cfg+40,'A$=""');add(cfg+50,'FOR I=0 TO 63:READ B:A$=A$+CHR$(B):NEXT I');add(cfg+60,'FR$(F)=A$:READ MD(F):NEXT F');
+  let off=cfg+70;if(hasMulti){add(off,`SPRCOLOR ${mc1},${mc2}`);off+=10}add(off,`FOR F=0 TO ${count-1}`);off+=10;add(off,'SP=FS+F');off+=10;add(off,'SPRSAV FR$(F),SP');off+=10;add(off,`SPRITE SP,1,${sc},0,0,0,MD(F)`);off+=10;add(off,'X=SX+MOD(F,4)*40:Y=SY+INT(F/4)*40');off+=10;add(off,'MOVSPR SP,X,Y');off+=10;add(off,'NEXT F');off+=10;add(off,'END');
+  let ln=dataStart;if(comments)lines.push(`${ln-20} REM ---- SPRITE DATA AND MODE VALUES ----`);for(const frame of active){const block=[...spriteBytes(frame),0];for(const c of chunks(block,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10}lines.push(`${ln} DATA ${frame.mode==='multi'?1:0}`);ln+=10}return lines.join('\n')
+ }
+ const unique=[],seq=[];for(const frame of source){const block=[...spriteBytes(frame),0],mode=frame.mode==='multi'?1:0;let idx=-1;if(dedup)idx=unique.findIndex(u=>u.mode===mode&&u.block.every((v,i)=>v===block[i]));if(idx<0){idx=unique.length;unique.push({block,mode})}seq.push(idx)}
+ if(comments){add(0,'REM ==================================================');add(10,`REM ${name} - MEGA65 BASIC 65 SPRITE ANIMATION`);add(20,'REM GENERATED BY C64 GRAPHICS STUDIO');add(30,'REM EDIT THE CONFIGURATION VALUES BELOW IF REQUIRED');add(40,'REM ==================================================')}
+ const cfg=comments?60:0;add(cfg,`SP=${firstSprite}:SX=${baseX}:SY=${baseY}:DL=${delay}`);add(cfg+10,`FC=${seq.length}:UC=${unique.length}`);add(cfg+20,'SPRITE CLR');add(cfg+30,`DIM FR$(${unique.length-1}):DIM MD(${unique.length-1})`);add(cfg+40,`FOR U=0 TO ${unique.length-1}`);add(cfg+50,'A$=""');add(cfg+60,'FOR I=0 TO 63:READ B:A$=A$+CHR$(B):NEXT I');add(cfg+70,'FR$(U)=A$:READ MD(U):NEXT U');
+ let off=cfg+80;if(seq.length>1){add(off,`DIM AN(${seq.length-1})`);off+=10;add(off,`FOR I=0 TO ${seq.length-1}:READ AN(I):NEXT I`);off+=10}if(hasMulti){add(off,`SPRCOLOR ${mc1},${mc2}`);off+=10}add(off,'MOVSPR SP,SX,SY');off+=10;
+ if(seq.length===1){add(off,'SPRSAV FR$(0),SP');off+=10;add(off,`SPRITE SP,1,${sc},0,0,0,MD(0)`);off+=10;add(off,'END')}else{add(off,'F=0:LM=-1');off+=10;if(loopMode==='pingpong'){add(off,'DR=1');off+=10}add(off,'DO');off+=10;add(off,'U=AN(F)');off+=10;add(off,'SPRSAV FR$(U),SP');off+=10;add(off,`IF MD(U)<>LM THEN SPRITE SP,1,${sc},0,0,0,MD(U):LM=MD(U)`);off+=10;add(off,'SLEEP DL');off+=10;if(loopMode==='once'){add(off,'F=F+1');off+=10;add(off,'IF F>=FC THEN EXIT');off+=10}else if(loopMode==='pingpong'){add(off,'F=F+DR');off+=10;add(off,'IF F>=FC-1 THEN F=FC-1:DR=-1');off+=10;add(off,'IF F<=0 THEN F=0:DR=1');off+=10}else{add(off,'F=MOD(F+1,FC)');off+=10}add(off,'LOOP');off+=10;if(loopMode==='once'){add(off,'END');off+=10}}
+ let ln=dataStart;if(comments)lines.push(`${ln-20} REM ---- UNIQUE SPRITE DATA AND MODE VALUES ----`);for(const u of unique){for(const c of chunks(u.block,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10}lines.push(`${ln} DATA ${u.mode}`);ln+=10}if(seq.length>1){if(comments){lines.push(`${ln} REM ---- ANIMATION SEQUENCE ----`);ln+=10}for(const c of chunks(seq,n)){lines.push(`${ln} DATA ${c.join(',')}`);ln+=10}}return lines.join('\n')
+}
+
+function exportText(){
+ const model=exportModel(),t=$('exportTarget').value,pad=$('includePadding').checked,bytes=model.unique.flatMap(b=>pad?b:b.slice(0,63));
+ if(t==='basic')return exportBasicData(model,false);
+ if(t==='mega65-data')return mega65Data(model);
+ if(t==='mega65-production')return mega65Production();
+ if(t==='mega65-include-data')return mega65IncludeData();
+ if(t==='mega65-include-loader')return mega65IncludeLoader();
+ if(['kick','acme','64tass','ca65','dasm'].includes(t))return asmExport(model,t);
+ if(t==='c')return cExport(model);
+ if(t==='hex')return bytes.map(v=>hex2(v)).join(', ');
+ if(t==='decimal')return bytes.join(', ');
+ return `Binary export: ${model.unique.length} × 64-byte sprite blocks (${model.unique.length*64} bytes). Use Download Export.`
+}
+function palette(){return [+$('bgColor').value,+$('multi1Color').value,+$('spriteColor').value,+$('multi2Color').value].map(i=>C64_COLORS[i][1])}
+function drawFrame(canvas,frame,scale){const ctx=canvas.getContext('2d'),cols=palette();ctx.imageSmoothingEnabled=false;ctx.fillStyle=cols[0];ctx.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const v=frame.data[y][x];if(v){ctx.fillStyle=frame.mode==='single'?cols[2]:cols[v];ctx.fillRect(x*scale,y*scale,scale,scale)}}}
+function renderByteTable(){const bytes=spriteBytes();byteTable.classList.toggle('hidden',$('showHex').value==='no');let h='<div class="head">ROW</div><div class="head">BYTE 1</div><div class="head">BYTE 2</div><div class="head">BYTE 3</div>';for(let y=0;y<H;y++){h+=`<div class="rownum">${y+1}</div>`;for(let i=0;i<3;i++){const b=bytes[y*3+i];h+=`<div>$${b.toString(16).toUpperCase().padStart(2,'0')} / ${b}</div>`}}byteTable.innerHTML=h}
+function renderFrameStrip(){frameStrip.innerHTML='';frames.forEach((f,i)=>{const card=document.createElement('button');card.type='button';card.className='frame-card'+(i===currentFrame?' active':'');card.title=`Select frame ${i+1}`;const cv=document.createElement('canvas');cv.width=72;cv.height=63;drawFrame(cv,f,3);const label=document.createElement('span');label.textContent=`FRAME ${i+1}`;card.append(cv,label);card.onclick=()=>selectFrame(i);frameStrip.appendChild(card)});const active=frameStrip.querySelector('.active');if(active)active.scrollIntoView({block:'nearest',inline:'nearest'})}
+function renderAnimationPreview(){const idx=playing?playIndex:currentFrame;drawFrame(animationPreview,frames[idx],8);$('animationReadout').innerHTML=`FRAME ${idx+1} / ${frames.length}<br>${Math.max(1,Math.min(50,+$('fps').value||8))} FPS<br>${playing?'PLAYING':'STOPPED'}`}
+function framePixelAt(frame,x,y,currentMulti){if(!frame)return 0;if(currentMulti){return frame.mode==='multi'?(frame.data[y][x]||frame.data[y][x+1]||0):((frame.data[y][x]||frame.data[y][x+1])?1:0)}return frame.mode==='multi'?(frame.data[y][x&~1]||0):(frame.data[y][x]||0)}
+function onionBackground(prevOn,nextOn,opacity,bg){const a=Math.max(.1,Math.min(.7,opacity/100));const p=`rgba(255,111,145,${a})`,n=`rgba(100,216,255,${a})`;if(prevOn&&nextOn)return `linear-gradient(135deg,${p} 0 48%,${n} 52% 100%),${bg}`;if(prevOn)return `linear-gradient(${p},${p}),${bg}`;if(nextOn)return `linear-gradient(${n},${n}),${bg}`;return bg}
+function render(){renderActiveColors();const g=grid(),multi=modeEl.value==='multi',showOnion=onionEnabled.checked&&frames.length>1,source=onionSource.value,opacity=+onionOpacity.value||35,bg=C64_COLORS[+$('bgColor').value][1];const prevFrame=currentFrame>0?frames[currentFrame-1]:null,nextFrame=currentFrame<frames.length-1?frames[currentFrame+1]:null;for(const c of editor.querySelectorAll('.cell')){const x=+c.dataset.x,y=+c.dataset.y,v=g[y][x];if(v){c.style.background=modeEl.value==='single'?C64_COLORS[+$('spriteColor').value][1]:palette()[v]}else if(showOnion){const prevOn=(source==='previous'||source==='both')&&framePixelAt(prevFrame,x,y,multi);const nextOn=(source==='next'||source==='both')&&framePixelAt(nextFrame,x,y,multi);c.style.background=onionBackground(!!prevOn,!!nextOn,opacity,bg)}else c.style.background=bg}drawFrame(preview,frames[currentFrame],8);drawFrame(previewNative,frames[currentFrame],1);output.value=exportText();updateExportWizard();renderByteTable();renderFrameStrip();renderAnimationPreview();updateHistoryButtons();$('deleteFrameBtn').disabled=frames.length===1;onionSource.disabled=!onionEnabled.checked;onionOpacity.disabled=!onionEnabled.checked;$('onionOpacityReadout').textContent=`${onionOpacity.value}%`}
+function updateExportWizard(){
+ const t=$('exportTarget').value,model=exportModel(),binary=t==='binary',mega=t.startsWith('mega65'),basic=t==='basic'||mega,usage=(document.querySelector('input[name="frameUsage"]:checked')||{}).value||'animation',showFrameUsage=t==='mega65-production'&&model.source.length>1;
+ const targetHelp={
+  'mega65-production':'Creates a complete runnable BASIC 65 program. Multiple frames can be exported as an animation or as separate hardware sprites.',
+  'mega65-include-loader':'Creates a reusable GOSUB loader for inclusion in your own BASIC 65 program. Call it once before other READ operations.',
+  'mega65-include-data':'Creates sprite and animation DATA only. Your own program is responsible for reading and displaying the data.',
+  'mega65-data':'Creates a simple standalone BASIC 65 DATA loader.',  'basic':'Creates decimal DATA statements for Commodore BASIC.',
+  'binary':'Creates raw 64-byte sprite blocks for direct file use.'
+ };
+ $('exportTargetHelp').textContent=targetHelp[t]||'Exports the selected sprite frames in the chosen source-code format.';
+ $('animationTable').checked=model.source.length>1;
+ $('frameUsageOptions').classList.toggle('hidden',!showFrameUsage);
+ document.querySelectorAll('.basic-option').forEach(e=>e.classList.toggle('hidden',!basic));
+ document.querySelectorAll('.mega-option').forEach(e=>e.classList.toggle('hidden',!mega));
+ document.querySelectorAll('.pointer-option').forEach(e=>e.classList.toggle('hidden',!$('generatePointers').checked));
+ const modeAware=['mega65-production','mega65-include-data','mega65-include-loader'].includes(t)?mega65IncludeModel():null;
+ $('output').readOnly=binary;$('statFrames').textContent=model.source.length;$('statUnique').textContent=modeAware?modeAware.unique.length:model.unique.length;$('statBytes').textContent=(modeAware?modeAware.unique.length:model.unique.length)*64;
+ const mixed=model.source.some(f=>f.mode!==model.source[0].mode),warnings=[];
+ if(mega&&mixed&&!['mega65-production','mega65-include-data','mega65-include-loader'].includes(t))warnings.push('This export mixes single-color and multicolor frames, but this legacy target uses one sprite mode for the whole animation.'); if(t==='mega65-production'&&model.source.length<2)warnings.push('Only one frame is selected, so the production export will generate a stationary sprite.');
+ if(t==='mega65-production'&&showFrameUsage&&usage==='sprites'){const first=Math.max(0,Math.min(7,+$('megaSprite').value||0)),capacity=8-first;if(model.source.length>capacity)warnings.push(`Only ${capacity} hardware sprite(s) are available when starting at sprite ${first}. Only the first ${capacity} selected frame(s) will be exported.`);}
+ if(t==='mega65-include-data')warnings.push('Data-only include contains no loader code. Your BASIC program must READ 64 bytes plus one mode value for each unique sprite.');
+ if(t==='mega65-include-loader')warnings.push('Call the generated loader subroutine once before other READ operations, because it reads from the BASIC DATA stream.'); if($('generatePointers').checked&&parseAddress()%64!==0)warnings.push('The sprite data address is not aligned to a 64-byte boundary, so the calculated VIC sprite pointer may not reference the first byte correctly.');
+ if(!binary&&!$('includePadding').checked&&['mega65-data','mega65-production','mega65-include-data','mega65-include-loader'].includes(t))warnings.push('MEGA65 SPRSAV strings require 64 bytes. The generated MEGA65 code always retains the padding byte.');
+ $('exportWarning').textContent=warnings.join(' ');$('exportWarning').classList.toggle('hidden',warnings.length===0);
+} 
+function updateModeUi(){const nextMode=modeEl.value,multi=nextMode==='multi',previous=+brushEl.value,modeChanged=lastUiMode!==nextMode;document.querySelectorAll('.multi-only').forEach(x=>x.classList.toggle('hidden',!multi));brushEl.innerHTML=multi?'<option value="0">Background</option><option value="1">Multicolor 1</option><option value="2">Sprite color</option><option value="3">Multicolor 2</option>':'<option value="0">Background</option><option value="1">Sprite color</option>';let selected;if(multi)selected=modeChanged?(previous===0?0:2):(previous>=0&&previous<=3?previous:2);else selected=previous===0?0:1;brushEl.value=String(selected);lastUiMode=nextMode;renderActiveColors()}
+modeEl.addEventListener('change',()=>{pushUndo();const target=modeEl.value,frame=frames[currentFrame],g=frame.data;frame.mode=target;if(target==='multi'){for(let y=0;y<H;y++)for(let x=0;x<W;x+=2){const v=(g[y][x]||g[y][x+1])?2:0;g[y][x]=g[y][x+1]=v}}else{for(let y=0;y<H;y++)for(let x=0;x<W;x++)g[y][x]=g[y][x]?1:0}updateModeUi();makeGrid();render();setStatus(target==='multi'?'FRAME CHANGED TO MULTICOLOR.':'FRAME CHANGED TO SINGLE COLOR.')});
+function mutate(fn,msg){pushUndo();fn();render();if(msg)setStatus(msg)}
+$('clearBtn').onclick=()=>mutate(()=>grid().forEach(r=>r.fill(0)),'FRAME CLEARED.');
+$('invertBtn').onclick=()=>mutate(()=>{const g=grid();if(modeEl.value==='single')for(let y=0;y<H;y++)for(let x=0;x<W;x++)g[y][x]=g[y][x]?0:1;else for(let y=0;y<H;y++)for(let x=0;x<W;x+=2){const v=g[y][x]===0?+brushEl.value:0;g[y][x]=g[y][x+1]=v}},'FRAME INVERTED.');
+function shift(dx,dy){mutate(()=>{const g=grid(),n=blankGrid();for(let y=0;y<H;y++)for(let x=0;x<W;x++){const nx=x+dx,ny=y+dy;if(nx>=0&&nx<W&&ny>=0&&ny<H)n[ny][nx]=g[y][x]}frames[currentFrame].data=n;if(modeEl.value==='multi')for(let y=0;y<H;y++)for(let x=0;x<W;x+=2){const v=n[y][x]||n[y][x+1];n[y][x]=n[y][x+1]=v}},'FRAME SHIFTED.')}
+$('shiftLeftBtn').onclick=()=>shift(modeEl.value==='multi'?-2:-1,0);$('shiftRightBtn').onclick=()=>shift(modeEl.value==='multi'?2:1,0);$('shiftUpBtn').onclick=()=>shift(0,-1);$('shiftDownBtn').onclick=()=>shift(0,1);
+$('mirrorHBtn').onclick=()=>mutate(()=>grid().forEach(r=>r.reverse()),'HORIZONTAL MIRROR APPLIED.');$('mirrorVBtn').onclick=()=>mutate(()=>frames[currentFrame].data.reverse(),'VERTICAL MIRROR APPLIED.');
+function rotate(clockwise){mutate(()=>{const g=grid(),n=blankGrid(),cx=(W-1)/2,cy=(H-1)/2;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const rx=x-cx,ry=y-cy,nx=Math.round(cx+(clockwise?-ry:ry)),ny=Math.round(cy+(clockwise?rx:-rx));if(nx>=0&&nx<W&&ny>=0&&ny<H)n[ny][nx]=g[y][x]}frames[currentFrame].data=n;if(modeEl.value==='multi')for(let y=0;y<H;y++)for(let x=0;x<W;x+=2){const v=n[y][x]||n[y][x+1];n[y][x]=n[y][x+1]=v}},clockwise?'ROTATED CLOCKWISE; CROPPED TO 24×21.':'ROTATED COUNTERCLOCKWISE; CROPPED TO 24×21.')}
+$('rotateCwBtn').onclick=()=>rotate(true);$('rotateCcwBtn').onclick=()=>rotate(false);
+function selectFrame(i){if(i<0||i>=frames.length)return;currentFrame=i;syncFrameMode();makeGrid();render();setStatus(`FRAME ${i+1} SELECTED.`)}
+$('prevFrameBtn').onclick=()=>selectFrame((currentFrame-1+frames.length)%frames.length);$('nextFrameBtn').onclick=()=>selectFrame((currentFrame+1)%frames.length);
+$('addFrameBtn').onclick=()=>{pushUndo();frames.splice(currentFrame+1,0,{mode:modeEl.value,data:blankGrid()});selectFrame(currentFrame+1);setStatus('NEW BLANK FRAME ADDED.')};
+$('duplicateFrameBtn').onclick=()=>{pushUndo();const f=frames[currentFrame];frames.splice(currentFrame+1,0,{mode:f.mode,data:f.data.map(r=>r.slice())});selectFrame(currentFrame+1);setStatus('FRAME DUPLICATED.')};
+$('deleteFrameBtn').onclick=()=>{if(frames.length===1)return;pushUndo();frames.splice(currentFrame,1);currentFrame=Math.min(currentFrame,frames.length-1);syncFrameMode();makeGrid();render();setStatus('FRAME DELETED.')};
+function playbackDelay(){const fps=Math.max(1,Math.min(50,+$('fps').value||8));return Math.max(20,Math.round(1000/fps))}
+function stopPlayback(){playing=false;if(playTimer!==null)clearInterval(playTimer);playTimer=null;$('playBtn').textContent='Play';renderAnimationPreview()}
+function advancePlaybackFrame(){const mode=$('loopMode').value;if(mode==='pingpong'){if(frames.length>1){playIndex+=playDirection;if(playIndex>=frames.length-1){playIndex=frames.length-1;playDirection=-1}else if(playIndex<=0){playIndex=0;playDirection=1}}return true}playIndex++;if(playIndex>=frames.length){if(mode==='once'){playIndex=frames.length-1;return false}playIndex=0}return true}
+function playbackTick(){if(!playing)return;if(!advancePlaybackFrame()){renderAnimationPreview();stopPlayback();return}renderAnimationPreview()}
+function schedulePlayback(){if(playTimer!==null)clearInterval(playTimer);playTimer=setInterval(playbackTick,playbackDelay())}
+function startPlayback(){if(frames.length===0)return;playing=true;playIndex=currentFrame;playDirection=1;$('playBtn').textContent='Stop';renderAnimationPreview();schedulePlayback()}
+
+onionEnabled.addEventListener('change',()=>{render();setStatus(onionEnabled.checked?'ONION SKIN ENABLED.':'ONION SKIN DISABLED.')});
+onionSource.addEventListener('change',render);
+onionOpacity.addEventListener('input',render);
+$('playBtn').onclick=()=>playing?stopPlayback():startPlayback();$('fps').addEventListener('input',()=>{renderAnimationPreview();if(playing)schedulePlayback()});$('loopMode').addEventListener('change',()=>{playDirection=1;if(playing)schedulePlayback()});
+$('undoBtn').onclick=()=>{if(!undoStack.length)return;redoStack.push(projectSnapshot());restoreProject(undoStack.pop());setStatus('UNDO.')};$('redoBtn').onclick=()=>{if(!redoStack.length)return;undoStack.push(projectSnapshot());restoreProject(redoStack.pop());setStatus('REDO.')};
+$('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(output.value);setStatus('EXPORT COPIED TO CLIPBOARD.')}catch(e){output.select();document.execCommand('copy');setStatus('EXPORT COPIED TO CLIPBOARD.')}};
+$('downloadExportBtn').onclick=()=>{const t=$('exportTarget').value,name=cleanName(),model=exportModel();if(t==='binary'){downloadBytes(model.unique.flatMap(b=>b),name+'.bin');setStatus('BINARY EXPORT DOWNLOADED.');return}const ext=(t==='basic'||t.startsWith('mega65'))?'.bas':(['kick','acme','64tass','ca65','dasm'].includes(t)?'.asm':t==='c'?'.c':'.txt');const blob=new Blob([output.value],{type:'text/plain;charset=utf-8'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name+ext;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setStatus('EXPORT FILE DOWNLOADED.');};
+$('importBtn').onclick=()=>{const b=parseImport(importBox.value);if(b.length<BYTES){alert(`Only ${b.length} bytes were found. A C64 sprite requires 63 bytes.`);return}if($('wizardScope').value==='all'&&b.length>=126){pushUndo();const count=Math.floor(b.length/63);frames=[];for(let i=0;i<count;i++)frames.push({mode:modeEl.value,data:decodeBytes(b.slice(i*63,i*63+63),modeEl.value)});currentFrame=0;syncFrameMode();makeGrid();render();setStatus(`${count} FRAMES IMPORTED.`)}else{loadBytes(b.slice(0,BYTES));setStatus('63 BYTES IMPORTED INTO CURRENT FRAME.')}};
+function downloadBytes(bytes,name){const blob=new Blob([new Uint8Array(bytes)],{type:'application/octet-stream'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('saveBinaryBtn').onclick=()=>{downloadBytes([...spriteBytes(),0],'sprite.spr');setStatus('CURRENT FRAME SAVED AS 64-BYTE SPRITE.SPR.')};
+$('saveAnimationBtn').onclick=()=>{downloadBytes(frames.flatMap(f=>[...spriteBytes(f),0]),'sprite-animation.bin');setStatus(`${frames.length}-FRAME ANIMATION SAVED.`)};
+$('loadBinaryBtn').onclick=()=>$('binaryPicker').click();$('binaryPicker').onchange=async e=>{const f=e.target.files[0];if(!f)return;const b=[...new Uint8Array(await f.arrayBuffer())];if(b.length<63){alert(`The file contains only ${b.length} bytes. At least 63 are required.`);return}pushUndo();if(b.length>=128&&b.length%64===0){frames=[];for(let i=0;i<b.length;i+=64)frames.push({mode:modeEl.value,data:decodeBytes(b.slice(i,i+63),modeEl.value)});currentFrame=0;syncFrameMode();makeGrid();render();setStatus(`${frames.length} FRAMES LOADED FROM ${f.name.toUpperCase()}.`)}else{frames[currentFrame].data=decodeBytes(b.slice(0,63),modeEl.value);render();setStatus(`${f.name.toUpperCase()} LOADED INTO CURRENT FRAME.`)}e.target.value=''};
+['exportTarget','wizardScope','assetName','perLine','lineStart','baseAddress','megaSprite','megaPosition','includeLabels','includeComments','includePadding','generatePointers','removeDuplicates','animationTable','showHex','bgColor','spriteColor','multi1Color','multi2Color'].map($).forEach(el=>el.addEventListener('input',render));
+document.querySelectorAll('input[name="frameUsage"]').forEach(el=>el.addEventListener('input',render));
+document.addEventListener('keydown',e=>{const tag=document.activeElement&&document.activeElement.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?$('redoBtn').click():$('undoBtn').click()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();$('redoBtn').click()}else if(e.key==='ArrowLeft'){e.preventDefault();$('prevFrameBtn').click()}else if(e.key==='ArrowRight'){e.preventDefault();$('nextFrameBtn').click()}else if(e.key===' '){e.preventDefault();$('playBtn').click()}});
+syncFrameMode();makeGrid();render();setStatus('READY. ADD OR DUPLICATE FRAMES TO BUILD AN ANIMATION. ONION SKIN CAN BE ENABLED BELOW THE FRAME CONTROLS.');
+})();
+</script>
+</body>
+</html>

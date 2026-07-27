@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Piramania Slideshow Generator</title>
+<style>
+@font-face {
+  font-family: 'C64';
+  src: url('ressources/C64_Pro_Mono-STYLE.woff2') format('woff2');
+}
+
+:root{
+  --c64-blue:#40318d;
+  --c64-dark:#21155f;
+  --c64-light:#7869c4;
+  --c64-light-blue:#7869c4;
+  --c64-pale:#b8b1e8;
+  --c64-white:#f2f0ff;
+  --c64-yellow:#d6d66f;
+  --c64-red:#b84b4b;
+  --ink:#171330;
+  font-family:"Arial";
+	
+  color:var(--c64-white);
+  background:var(--c64-blue);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  padding:24px;
+  background:
+    linear-gradient(rgba(255,255,255,.025) 50%,rgba(0,0,0,.025) 50%) 0 0/100% 4px,
+    var(--c64-blue);
+}
+.wrap{max-width:1120px;margin:auto}
+.hero{
+font-family: 'C64', monospace;
+  margin-bottom:18px;
+  padding:22px 24px;
+  border:4px solid var(--c64-pale);
+  background:var(--c64-dark);
+  box-shadow:8px 8px 0 rgba(0,0,0,.3);
+  text-align:center;
+}
+h1{
+  margin:0 0 10px;
+  color:var(--c64-yellow);
+  font-size:clamp(1.65rem,4vw,2.7rem);
+  line-height:1.1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-shadow:3px 3px 0 #000;
+}
+h2{margin:0;color:var(--c64-dark);text-transform:uppercase;letter-spacing:.04em; font-family: 'C64', monospace;}
+.subtitle{margin:0;color:var(--c64-pale);line-height:1.55}
+
+.card{
+  margin-bottom:18px;
+  padding:20px;
+  color:var(--ink);
+  background:var(--c64-pale);
+  border:4px solid var(--c64-white);
+  border-radius:0;
+  box-shadow:8px 8px 0 rgba(0,0,0,.28);
+}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px}
+label{font-weight:700;line-height:1.45}
+input,select,button{
+  width:100%;
+  margin-top:5px;
+  padding:10px 11px;
+  border:3px solid var(--c64-dark);
+  border-radius:0;
+  background:var(--c64-white);
+  color:var(--ink);
+  font:700 .95rem/1.2 "Arial",Courier,monospace;
+  box-shadow:3px 3px 0 rgba(0,0,0,.22);
+}
+input:focus,select:focus,button:focus{outline:3px solid var(--c64-yellow);outline-offset:2px}
+button{width:auto;cursor:pointer;text-transform:uppercase}
+button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,.28)}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(0,0,0,.25)}
+.primary{background:var(--c64-dark);color:var(--c64-yellow);border-color:#09051f}
+.danger{color:#fff;background:var(--c64-red);border-color:#5a1717}
+
+.row{
+    display:grid;
+    grid-template-columns:
+        44px
+        172px
+        minmax(150px,1.5fr)
+        minmax(130px,1fr)
+        minmax(150px,1fr)
+        150px
+        190px;
+
+    gap:12px;
+align-items:end;
+    padding:14px 0;
+    border-top:3px dashed rgba(33,21,95,.35);
+}
+
+.row:first-child{
+    border-top:0;
+}
+
+.row > .actions{
+    justify-self:end;
+}
+
+.actions{
+    display:flex;
+    gap:6px;
+    flex-wrap:nowrap;
+    align-items:center;
+}
+		
+.slide-actions{
+    justify-self:end;
+    display:flex;
+    gap:6px;
+}
+
+.num{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-family:'C64', monospace;
+    font-size:1.8rem;
+    color:var(--c64-light-blue);
+    text-shadow:2px 2px 0 #000;
+}
+		
+
+.preview-wrap{
+    width:166px;
+    padding:3px;
+    border:3px solid var(--c64-dark);
+    background:var(--c64-dark);
+    box-shadow:3px 3px 0 rgba(0,0,0,.22);
+}
+.preview{
+    display:block;
+    width:160px;
+    height:100px;
+    image-rendering:pixelated;
+    background:#000;
+}
+.file-info{
+    margin-top:6px;
+    color:var(--c64-dark);
+    font-size:.78rem;
+    font-weight:700;
+    overflow-wrap:anywhere;
+}
+#filePicker{display:none}
+
+.toolbar{justify-content:space-between}
+.status{
+  font-family: 'C64', monospace;
+  min-height:58px;
+  padding:14px;
+  border:4px solid var(--c64-pale);
+  background:#101010;
+  color:#8be28b;
+  white-space:pre-wrap;
+  box-shadow:inset 0 0 0 2px #000;
+}
+.note{
+  padding:14px 16px;
+  border-left:8px solid var(--c64-yellow);
+  background:rgba(255,255,255,.55);
+  line-height:1.55;
+}
+.muted{color:var(--c64-pale)}
+.badge{
+  display:inline-block;
+  margin-bottom:10px;
+  padding:4px 8px;
+  color:var(--c64-yellow);
+  border:2px solid var(--c64-yellow);
+  text-transform:uppercase;
+}
+@media(max-width:850px){
+  body{padding:14px}
+  .grid{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:34px 1fr}
+  .row>*{grid-column:2}
+  .row>.num{grid-column:1;grid-row:1/7}
+  .actions{flex-direction:column;align-items:stretch}
+  button{width:100%}
+}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.hero,.card{padding:16px;box-shadow:5px 5px 0 rgba(0,0,0,.28)}}
+</style>
+</head>
+<body><div class="wrap">
+<header class="hero">
+<div class="badge">Piramania Presents</div>
+<h1>Koala Slideshow Generator</h1>
+<p class="subtitle">Build a C64 slideshow from a list of Koala (.kla) files.</p>
+</header>
+<div class="card">
+<h2>Slideshow settings</h2>
+<div class="grid" style="margin-top:16px">
+<label>Drive number<br><input id="device" type="number" min="8" max="11" value="8"></label>
+<label>Default advance mode<br><select id="defaultMode"><option value="auto">Timer or keypress</option><option value="key">Keypress only</option></select></label>
+<label>Default duration (seconds)<br><input id="defaultSeconds" type="number" min="1" max="1200" value="10"></label>
+<label>After final image<br><select id="loop"><option value="1">Loop to first image</option><option value="0">Remain on final image</option></select></label>
+</div></div>
+<div class="card"><div class="actions toolbar"><h2>Images</h2><button id="add">+ Add image</button><input id="filePicker" type="file" accept=".kla,.koa" multiple></div><div id="slides"></div></div>
+<div class="card"><div class="actions"><button class="primary" id="build">Generate SLIDESHOW.PRG</button><button id="clear" class="danger">Clear list</button></div>
+<p class="note"><b>Tips:</b> Convert your images to Koala format using a program such as <a href="https://www.beyond.dk/RetroPaint/" target="blank">RetroPaint</a>. Then copy the generated SLIDESHOW.PRG together with all Koala image files to a floppy disk using <a href="https://csdb.dk/release/?id=188658" target="_blank">DirMaster</a>.</p>
+<div id="status" class="status">READY.</div></div>
+</div>
+<script>
+'use strict';
+const COLORS=[['0 Black',0],['1 White',1],['2 Red',2],['3 Cyan',3],['4 Purple',4],['5 Green',5],['6 Blue',6],['7 Yellow',7],['8 Orange',8],['9 Brown',9],['10 Light red',10],['11 Dark grey',11],['12 Grey',12],['13 Light green',13],['14 Light blue',14],['15 Light grey',15]];
+const slidesEl=document.getElementById('slides'),statusEl=document.getElementById('status'),filePicker=document.getElementById('filePicker');
+const C64_PALETTE=[
+  '#000000','#ffffff','#813338','#75cec8','#8e3c97','#56ac4d','#2e2c9b','#edf171',
+  '#8e5029','#553800','#c46c71','#4a4a4a','#7b7b7b','#a9ff9f','#706deb','#b2b2b2'
+];
+function esc(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]))}
+function colorOptions(v){return COLORS.map(([n,x])=>`<option value="${x}" ${x===v?'selected':''}>${n}</option>`).join('')}
+function c64Filename(filename){return filename.replace(/\.(kla|koa)$/i,'').trim().toLowerCase().slice(0,16)}
+function addSlide(d={name:'',border:0,mode:'auto',seconds:10,file:null}){
+  const r=document.createElement('div');
+  r.className='row';
+  r.innerHTML=`<div class="num"></div><div><div class="preview-wrap"><canvas class="preview" width="320" height="200"></canvas></div></div><label>C64 filename<br><input class="name" maxlength="16" value="${esc(d.name)}"></label><label>Border colour<br><select class="border">${colorOptions(d.border)}</select></label><label>Advance mode<br><select class="mode"><option value="auto" ${d.mode==='auto'?'selected':''}>Timer or keypress</option><option value="key" ${d.mode==='key'?'selected':''}>Keypress only</option></select></label><label>Duration (seconds)<br><input class="seconds" type="number" min="1" max="1200" value="${d.seconds}"></label><div class="actions"><button class="up">↑</button><button class="down">↓</button><button class="remove danger">Delete</button></div>`;
+  r.querySelector('.up').onclick=()=>{if(r.previousElementSibling)slidesEl.insertBefore(r,r.previousElementSibling);renumber()};
+  r.querySelector('.down').onclick=()=>{if(r.nextElementSibling)slidesEl.insertBefore(r.nextElementSibling,r);renumber()};
+  r.querySelector('.remove').onclick=()=>{r.remove();renumber()};
+  r.querySelector('.mode').onchange=e=>r.querySelector('.seconds').disabled=e.target.value==='key';
+  slidesEl.appendChild(r);
+  r.querySelector('.mode').dispatchEvent(new Event('change'));
+  renumber();
+  if(d.file)renderKoalaPreview(d.file,r.querySelector('.preview')).catch(e=>{
+    r.querySelector('.file-info').textContent=d.file.name+' — '+e.message;
+    r.querySelector('.file-info').style.color='var(--c64-red)';
+  });
+}
+async function renderKoalaPreview(file,canvas){
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  let o;
+  if(bytes.length===10003)o=2;
+  else if(bytes.length===10001)o=0;
+  else throw Error(`invalid size (${bytes.length} bytes)`);
+  const bitmap=bytes.subarray(o,o+8000),screen=bytes.subarray(o+8000,o+9000),color=bytes.subarray(o+9000,o+10000),bg=bytes[o+10000]&15;
+  const ctx=canvas.getContext('2d'),img=ctx.createImageData(320,200),data=img.data;
+  for(let cy=0;cy<25;cy++)for(let cx=0;cx<40;cx++){
+    const cell=cy*40+cx,screenByte=screen[cell],cols=[bg,(screenByte>>4)&15,screenByte&15,color[cell]&15];
+    for(let py=0;py<8;py++){
+      const b=bitmap[cell*8+py];
+      for(let pair=0;pair<4;pair++){
+        const ci=(b>>(6-pair*2))&3,rgb=C64_PALETTE[cols[ci]],n=parseInt(rgb.slice(1),16),rr=(n>>16)&255,gg=(n>>8)&255,bb=n&255;
+        const x=cx*8+pair*2,y=cy*8+py;
+        for(let dx=0;dx<2;dx++){
+          const q=((y*320)+(x+dx))*4;data[q]=rr;data[q+1]=gg;data[q+2]=bb;data[q+3]=255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+function renumber(){[...slidesEl.children].forEach((r,i)=>r.querySelector('.num').textContent=i+1)}
+function getSlides(){return [...slidesEl.children].map((r,i)=>({name:r.querySelector('.name').value.trim().toLowerCase(),border:+r.querySelector('.border').value,mode:r.querySelector('.mode').value,seconds:+r.querySelector('.seconds').value,index:i}))}
+function validate(ss){if(!ss.length)throw Error('Add at least one image.');if(ss.length>64)throw Error('This version supports a maximum of 64 images.');for(const s of ss){if(!s.name)throw Error(`Image ${s.index+1} is missing a filename.`);if(s.name.length>16)throw Error(`The filename ${s.name} is too long.`);if(!/^[a-z0-9 _\-.]+$/.test(s.name))throw Error(`The filename ${s.name} contains an unsupported character.`);if(s.mode==='auto'&&(!Number.isFinite(s.seconds)||s.seconds<1||s.seconds>1200))throw Error(`Invalid duration for ${s.name}.`)}}
+class Asm{constructor(origin){this.origin=origin;this.bytes=[];this.labels={};this.fix=[]}pc(){return this.origin+this.bytes.length}label(n){this.labels[n]=this.pc()}b(...v){this.bytes.push(...v.map(x=>x&255))}abs(op,l){this.b(op,0,0);this.fix.push({at:this.bytes.length-2,label:l,type:'abs'})}rel(op,l){this.b(op,0);this.fix.push({at:this.bytes.length-1,label:l,type:'rel',from:this.pc()})}lo(l){this.b(0);this.fix.push({at:this.bytes.length-1,label:l,type:'lo'})}hi(l){this.b(0);this.fix.push({at:this.bytes.length-1,label:l,type:'hi'})}finish(){for(const f of this.fix){const x=this.labels[f.label];if(x==null)throw Error('Unknown label: '+f.label);if(f.type==='abs'){this.bytes[f.at]=x&255;this.bytes[f.at+1]=x>>8}else if(f.type==='lo')this.bytes[f.at]=x&255;else if(f.type==='hi')this.bytes[f.at]=x>>8;else{const d=x-f.from;if(d<-128||d>127)throw Error('Branch out of range: '+f.label);this.bytes[f.at]=d&255}}return this.bytes}}
+function buildPrg(slides,device,loop){
+ const a=new Asm(0x080d);
+ a.label('start');
+ // Copy the fixed 24x21 single-color loading sprite to $5000 (VIC bank 1, pointer $40).
+ a.b(0xa2,0x00);a.label('initspriteloop');a.abs(0xbd,'spritedata');a.b(0x9d,0x00,0x50,0xe8,0xe0,0x40);a.rel(0xd0,'initspriteloop');
+ a.b(0xa9,0x00);a.abs(0x8d,'current');a.abs(0x8d,'hasimage');
+ a.label('main');
+ a.b(0x20,0xcc,0xff); // CLRCHN
+ // Only the first load starts from a black text screen. Later loads leave the current Koala image visible.
+ a.abs(0xad,'hasimage');a.rel(0xd0,'keepdisplay');
+ a.b(0xad,0x00,0xdd,0x29,0xfc,0x09,0x03,0x8d,0x00,0xdd); // VIC bank 0
+ a.b(0xa9,0x1b,0x8d,0x11,0xd0,0xa9,0x08,0x8d,0x16,0xd0,0xa9,0x14,0x8d,0x18,0xd0);
+ a.b(0xa9,0x00,0x8d,0x20,0xd0,0x8d,0x21,0xd0);
+ a.label('keepdisplay');
+ // Show the loading sprite only when an existing image is already on screen.
+ a.abs(0xad,'hasimage');a.rel(0xf0,'nosprite');a.abs(0x20,'showsprite');a.label('nosprite');
+ // Filename.
+ a.abs(0xae,'current');
+ a.abs(0xbd,'namelen');a.b(0x48);
+ a.abs(0xbd,'namehi');a.b(0xa8);
+ a.abs(0xbd,'namelo');a.b(0xaa);
+ a.b(0x68,0x20,0xbd,0xff); // SETNAM
+ // SA=0 makes LOAD relocate file data to XY instead of using the Koala header address.
+ a.b(0xa9,0x02,0xa2,device&255,0xa0,0x00,0x20,0xba,0xff); // SETLFS
+ a.b(0xa9,0x00,0xa2,0x00,0xa0,0x90,0x20,0xd5,0xff); // LOAD to $9000
+ a.rel(0x90,'loadsuccess');
+ a.abs(0x20,'hidesprite');a.abs(0x4c,'loaderror');
+ a.label('loadsuccess');a.abs(0x20,'hidesprite');a.label('loadok');
+ // Briefly blank during the memory copy, but keep VIC configuration otherwise intact.
+ a.b(0x78); // SEI
+ a.b(0xad,0x11,0xd0,0x29,0xef,0x8d,0x11,0xd0); // screen off
+ a.b(0xa9,0x00,0x8d,0x20,0xd0,0x8d,0x21,0xd0);
+ // Bank BASIC ROM out so source bytes at $a000-$b710 are readable. KERNAL and I/O stay visible.
+ a.b(0xa9,0x36,0x85,0x01);
+ // Copy bitmap: $9000-$af3f -> $6000-$7f3f (31 pages + 64 bytes).
+ a.b(0xa9,0x00,0x85,0x02,0xa9,0x90,0x85,0x03,0xa9,0x00,0x85,0x04,0xa9,0x60,0x85,0x05,0xa2,0x1f);
+ a.label('bitmappage');a.b(0xa0,0x00);a.label('bitmapbyte');a.b(0xb1,0x02,0x91,0x04,0xc8);a.rel(0xd0,'bitmapbyte');a.b(0xe6,0x03,0xe6,0x05,0xca);a.rel(0xd0,'bitmappage');
+ a.b(0xa0,0x00);a.label('bitmaptail');a.b(0xb1,0x02,0x91,0x04,0xc8,0xc0,0x40);a.rel(0xd0,'bitmaptail');
+ // Copy screen: $af40-$b327 -> $5c00-$5fe7 (1000 bytes).
+ a.b(0xa9,0x40,0x85,0x02,0xa9,0xaf,0x85,0x03,0xa9,0x00,0x85,0x04,0xa9,0x5c,0x85,0x05,0xa2,0x03);
+ a.label('screenpage');a.b(0xa0,0x00);a.label('screenbyte');a.b(0xb1,0x02,0x91,0x04,0xc8);a.rel(0xd0,'screenbyte');a.b(0xe6,0x03,0xe6,0x05,0xca);a.rel(0xd0,'screenpage');
+ a.b(0xa0,0x00);a.label('screentail');a.b(0xb1,0x02,0x91,0x04,0xc8,0xc0,0xe8);a.rel(0xd0,'screentail');
+ // Copy color: $b328-$b70f -> $d800-$dbe7 (1000 bytes).
+ a.b(0xa9,0x28,0x85,0x02,0xa9,0xb3,0x85,0x03,0xa9,0x00,0x85,0x04,0xa9,0xd8,0x85,0x05,0xa2,0x03);
+ a.label('colorpage');a.b(0xa0,0x00);a.label('colorbyte');a.b(0xb1,0x02,0x91,0x04,0xc8);a.rel(0xd0,'colorbyte');a.b(0xe6,0x03,0xe6,0x05,0xca);a.rel(0xd0,'colorpage');
+ a.b(0xa0,0x00);a.label('colortail');a.b(0xb1,0x02,0x91,0x04,0xc8,0xc0,0xe8);a.rel(0xd0,'colortail');
+ // Background is the last Koala byte at $b710.
+ a.b(0xad,0x10,0xb7,0x8d,0x21,0xd0);
+ // Restore normal ROM mapping.
+ a.b(0xa9,0x37,0x85,0x01);
+ // Fixed Koala display: VIC bank 1, screen $5c00, bitmap $6000.
+ a.b(0xad,0x00,0xdd,0x29,0xfc,0x09,0x02,0x8d,0x00,0xdd);
+ a.b(0xa9,0x78,0x8d,0x18,0xd0,0xa9,0x3b,0x8d,0x11,0xd0,0xa9,0x18,0x8d,0x16,0xd0);
+ a.abs(0xae,'current');a.abs(0xbd,'borders');a.b(0x8d,0x20,0xd0);
+ a.b(0xa9,0x01);a.abs(0x8d,'hasimage');a.b(0x58); // CLI
+ a.abs(0x20,'waitslide');
+ // Advance index.
+ a.abs(0xee,'current');a.abs(0xad,'current');a.b(0xc9,slides.length);a.rel(0x90,'mainbranch');
+ if(loop){a.b(0xa9,0x00);a.abs(0x8d,'current');a.abs(0x4c,'main')}else{a.abs(0xce,'current');a.label('holdlast');a.abs(0x20,'waitkey');a.abs(0x4c,'holdlast')}
+ a.label('mainbranch');a.abs(0x4c,'main');
+ // Wait according to slide table. Zero means key only.
+ a.label('waitslide');
+ a.abs(0xae,'current');a.abs(0xbd,'delaylo');a.abs(0x8d,'countlo');a.abs(0xbd,'delayhi');a.abs(0x8d,'counthi');
+ a.abs(0xad,'countlo');a.abs(0x0d,'counthi');a.rel(0xf0,'waitkey');
+ a.label('timeloop');a.abs(0x20,'checkkey');a.rel(0xd0,'waitdone');a.abs(0x20,'waitframe');
+ a.abs(0xad,'countlo');a.rel(0xd0,'declow');a.abs(0xce,'counthi');a.label('declow');a.abs(0xce,'countlo');
+ a.abs(0xad,'countlo');a.abs(0x0d,'counthi');a.rel(0xd0,'timeloop');
+ a.label('waitdone');a.b(0x60);
+ a.label('waitkey');a.abs(0x20,'checkkey');a.rel(0xf0,'waitkey');a.b(0x60);
+ a.label('checkkey');a.b(0x20,0xe4,0xff,0x60);
+ // Two overlapping single-color sprites at the lower-right corner.
+ // Sprite 0 is yellow at X=304,Y=218. Sprite 1 is the black shadow at X=305,Y=219.
+ a.label('showsprite');
+ a.b(0xa9,0x40,0x8d,0xf8,0x5f,0x8d,0xf9,0x5f); // both pointers use sprite data at $5000
+ a.b(0xa9,0x30,0x8d,0x00,0xd0,0xa9,0xda,0x8d,0x01,0xd0); // sprite 0 yellow foreground
+ a.b(0xa9,0x31,0x8d,0x02,0xd0,0xa9,0xdb,0x8d,0x03,0xd0); // sprite 1 black shadow
+ a.b(0xad,0x10,0xd0,0x09,0x03,0x8d,0x10,0xd0); // X high bits for both sprites
+ a.b(0xad,0x1c,0xd0,0x29,0xfc,0x8d,0x1c,0xd0); // both single-color
+ a.b(0xad,0x17,0xd0,0x29,0xfc,0x8d,0x17,0xd0); // no Y expansion
+ a.b(0xad,0x1d,0xd0,0x29,0xfc,0x8d,0x1d,0xd0); // no X expansion
+ a.b(0xad,0x1b,0xd0,0x29,0xfc,0x8d,0x1b,0xd0); // both in front of bitmap
+ a.b(0xa9,0x07,0x8d,0x27,0xd0); // sprite 0 yellow foreground
+ a.b(0xa9,0x00,0x8d,0x28,0xd0); // sprite 1 black shadow
+ a.b(0xad,0x15,0xd0,0x09,0x03,0x8d,0x15,0xd0,0x60); // enable sprites 0 and 1
+ a.label('hidesprite');a.b(0xad,0x15,0xd0,0x29,0xfc,0x8d,0x15,0xd0,0x60);
+ a.label('waitframe');a.b(0xad,0x12,0xd0,0xc9,0xff);a.rel(0xd0,'waitframe');a.label('frame2');a.b(0xad,0x12,0xd0,0xc9,0xff);a.rel(0xf0,'frame2');a.b(0x60);
+ a.label('loaderror');a.b(0xa9,0x37,0x85,0x01,0x58,0xa9,0x02,0x8d,0x20,0xd0);a.label('errorhold');a.abs(0x4c,'errorhold');
+ // Runtime variables and tables.
+ a.label('current');a.b(0);a.label('hasimage');a.b(0);a.label('countlo');a.b(0);a.label('counthi');a.b(0);
+ a.label('spritedata');
+ [0x00,0x00,0x00,0x88,0x99,0x53,0x95,0x54,0x74,0x95,0xd5,0x75,0xc9,0x59,0x53,0x00,
+  0x00,0x00,0x00,0x00,0x00,0x03,0xff,0xc0,0x03,0xff,0xc0,0x03,0xff,0xc0,0x03,0xff,
+  0x80,0x03,0xe7,0xc0,0x03,0xc3,0xc0,0x03,0xe7,0xc0,0x03,0xff,0xc0,0x03,0xe7,0xc0,
+  0x03,0xe7,0xc0,0x03,0xe7,0xc0,0x03,0xff,0xc0,0x00,0x00,0x00,0x00,0x00,0x00,0x00].forEach(v=>a.b(v));
+ a.label('namelen');slides.forEach(s=>a.b(s.name.length));
+ a.label('namelo');slides.forEach((s,i)=>a.lo('name'+i));
+ a.label('namehi');slides.forEach((s,i)=>a.hi('name'+i));
+ a.label('borders');slides.forEach(s=>a.b(s.border));
+ a.label('delaylo');slides.forEach(s=>{const n=s.mode==='auto'?Math.min(65535,Math.round(s.seconds*50)):0;a.b(n)});
+ a.label('delayhi');slides.forEach(s=>{const n=s.mode==='auto'?Math.min(65535,Math.round(s.seconds*50)):0;a.b(n>>8)});
+ 
+ 
+ // slides.forEach((s,i)=>{a.label('name'+i);for(const ch of s.name)a.b(ch.charCodeAt(0))});
+ 
+ slides.forEach((s, i) => {
+    a.label('name' + i);
+
+    for (const ch of s.name) {
+        const code = ch.charCodeAt(0);
+
+        // Convert lowercase ASCII letters to the PETSCII codes
+        // normally used for C64 disk filenames.
+        if (code >= 97 && code <= 122) {
+            a.b(code - 32);
+        } else {
+            a.b(code);
+        }
+    }
+});
+ 
+ 
+ const code=a.finish(),basic=[0x0b,0x08,0x0a,0x00,0x9e,0x32,0x30,0x36,0x31,0x00,0x00,0x00];
+ return new Uint8Array([0x01,0x08,...basic,...code]);
+}
+function download(name,bytes){const blob=new Blob([bytes],{type:'application/octet-stream'}),u=URL.createObjectURL(blob),x=document.createElement('a');x.href=u;x.download=name;x.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+document.getElementById('add').onclick=()=>filePicker.click();
+filePicker.onchange=()=>{
+  const files=[...filePicker.files];
+  for(const file of files)addSlide({name:c64Filename(file.name),border:0,mode:document.getElementById('defaultMode').value,seconds:+document.getElementById('defaultSeconds').value,file});
+  if(files.length)statusEl.textContent=`${files.length} IMAGE FILE${files.length===1?'':'S'} ADDED.`;
+  filePicker.value='';
+};
+document.getElementById('clear').onclick=()=>{slidesEl.innerHTML='';renumber();statusEl.textContent='LIST CLEARED.'};
+document.getElementById('build').onclick=()=>{try{const ss=getSlides();validate(ss);const device=+document.getElementById('device').value;if(device<8||device>30)throw Error('Drive number must be between 8 and 11.');const prg=buildPrg(ss,device,document.getElementById('loop').value==='1');download('slideshow.prg',prg);statusEl.textContent=`SLIDESHOW.PRG GENERATED (${prg.length} BYTES).\n${ss.length} IMAGE(S), DRIVE ${device}.\n\nIF YOU GET A RED BORDER, IT MEANS A FILE WAS NOT FOUND. PUT FILES ON DISK WITHOUT .KLA EXTENSION.`}catch(e){statusEl.textContent='ERROR: '+e.message;console.error(e)}};
+
+</script></body></html>

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Koala Slideshow Generator - README</title>
+<style>
+@font-face {
+  font-family:'C64';
+  src:url('ressources/C64_Pro_Mono-STYLE.woff2') format('woff2');
+}
+:root{
+  --c64-blue:#40318d;
+  --c64-dark:#21155f;
+  --c64-light:#7869c4;
+  --c64-pale:#b8b1e8;
+  --c64-white:#f2f0ff;
+  --c64-yellow:#d6d66f;
+  --c64-red:#b84b4b;
+  --ink:#171330;
+  color:var(--c64-white);
+  background:var(--c64-blue);
+  font-family:Arial,Helvetica,sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  padding:24px;
+  background:
+    linear-gradient(rgba(255,255,255,.025) 50%,rgba(0,0,0,.025) 50%) 0 0/100% 4px,
+    var(--c64-blue);
+}
+.wrap{max-width:1000px;margin:auto}
+.hero{
+  margin-bottom:18px;
+  padding:22px 24px;
+  border:4px solid var(--c64-pale);
+  background:var(--c64-dark);
+  box-shadow:8px 8px 0 rgba(0,0,0,.3);
+  text-align:center;
+  font-family:'C64',monospace;
+}
+.badge{
+  display:inline-block;
+  margin-bottom:10px;
+  padding:4px 8px;
+  color:var(--c64-yellow);
+  border:2px solid var(--c64-yellow);
+  text-transform:uppercase;
+}
+h1{
+  margin:0 0 10px;
+  color:var(--c64-yellow);
+  font-size:clamp(1.65rem,4vw,2.7rem);
+  line-height:1.1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  text-shadow:3px 3px 0 #000;
+}
+.subtitle{margin:0;color:var(--c64-pale);line-height:1.55}
+.card{
+  margin-bottom:18px;
+  padding:20px;
+  color:var(--ink);
+  background:var(--c64-pale);
+  border:4px solid var(--c64-white);
+  box-shadow:8px 8px 0 rgba(0,0,0,.28);
+}
+h2{
+  margin:0 0 14px;
+  color:var(--c64-dark);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  font-family:'C64',monospace;
+}
+h3{margin:22px 0 8px;color:var(--c64-dark)}
+p,li{line-height:1.58}
+ul,ol{padding-left:1.35rem}
+li+li{margin-top:.55rem}
+code{
+  padding:.12rem .35rem;
+  border:2px solid rgba(33,21,95,.25);
+  background:var(--c64-white);
+  color:var(--c64-dark);
+  font-weight:700;
+}
+.note,.warning{
+  margin-top:16px;
+  padding:14px 16px;
+  background:rgba(255,255,255,.58);
+  line-height:1.55;
+}
+.note{border-left:8px solid var(--c64-yellow)}
+.warning{border-left:8px solid var(--c64-red)}
+.settings{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.setting{
+  padding:12px;
+  border:3px solid rgba(33,21,95,.35);
+  background:rgba(255,255,255,.35);
+}
+.setting b{display:block;margin-bottom:4px;color:var(--c64-dark)}
+.status{
+  min-height:58px;
+  padding:14px;
+  border:4px solid var(--c64-pale);
+  background:#101010;
+  color:#8be28b;
+  white-space:pre-wrap;
+  box-shadow:inset 0 0 0 2px #000;
+  font-family:'C64',monospace;
+}
+a{color:var(--c64-dark);font-weight:700}
+@media(max-width:700px){
+  body{padding:14px}
+  .hero,.card{padding:16px;box-shadow:5px 5px 0 rgba(0,0,0,.28)}
+  .settings{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="badge">Piramania Presents</div>
+    <h1>Koala Slideshow Generator</h1>
+    <p class="subtitle">README and user guide</p>
+  </header>
+
+  <section class="card">
+    <h2>What it does</h2>
+    <p>Koala Slideshow Generator creates a Commodore 64 program called <code>SLIDESHOW.PRG</code>. The program loads and displays a sequence of Koala Painter images from a disk drive.</p>
+    <p>Each image can use its own border colour, display time and advance mode. Images may advance automatically, by keypress, or by whichever happens first. The slideshow can loop back to the first image or remain on the final image.</p>
+    <p>The generator runs entirely in your web browser. It does not upload your images anywhere.</p>
+  </section>
+
+  <section class="card">
+    <h2>Requirements</h2>
+    <ul>
+      <li>A modern web browser.</li>
+      <li>One or more Koala image files in <code>.kla</code> or <code>.koa</code> format.</li>
+      <li>A tool such as DirMaster for creating or editing a D64 disk image.</li>
+      <li>A real Commodore 64, an Ultimate device, or a compatible emulator.</li>
+    </ul>
+    <p class="note"><b>Image conversion:</b> Programs such as RetroPaint can convert ordinary image files to Koala format.</p>
+  </section>
+
+  <section class="card">
+    <h2>How to use it</h2>
+    <ol>
+      <li>Open the Koala Slideshow Generator HTML file in your browser.</li>
+      <li>Choose the drive number. For most setups this will be drive <code>8</code>.</li>
+      <li>Set the default advance mode and duration. These values are used when new images are added.</li>
+      <li>Choose what should happen after the final image: loop to the first image or remain on the final image.</li>
+      <li>Click <b>+ Add image</b> and select one or more Koala files.</li>
+      <li>Check the preview for each image and adjust its border colour, advance mode and duration.</li>
+      <li>Use the up and down buttons to change the image order. Use <b>Delete</b> to remove an image.</li>
+      <li>Click <b>Generate SLIDESHOW.PRG</b>.</li>
+      <li>Create or open a D64 image in DirMaster.</li>
+      <li>Copy <code>SLIDESHOW.PRG</code> and all the selected Koala files to the same D64 image.</li>
+      <li>Save the D64 image, mount it on the C64 or emulator, and run the slideshow with <code>LOAD"SLIDESHOW",8,1</code> followed by <code>RUN</code>.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Slideshow settings</h2>
+    <div class="settings">
+      <div class="setting"><b>Drive number</b>The device number used when the slideshow loads each image. Normally 8.</div>
+      <div class="setting"><b>Default advance mode</b>Determines the initial mode assigned to newly added images.</div>
+      <div class="setting"><b>Default duration</b>The initial number of seconds used for newly added timed images.</div>
+      <div class="setting"><b>After final image</b>Choose whether the slideshow loops or stays on the last image.</div>
+      <div class="setting"><b>Border colour</b>The C64 border colour used while the selected image is displayed.</div>
+      <div class="setting"><b>Advance mode</b><b>Timer or keypress</b> advances after the selected time or immediately when a key is pressed. <b>Keypress only</b> waits indefinitely.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Important filename rules</h2>
+    <p>The generator removes the <code>.kla</code> or <code>.koa</code> extension and converts the filename to lowercase. The resulting C64 filename may contain no more than 16 characters.</p>
+    <p>For example:</p>
+    <p><code>image01.kla</code> becomes <code>image01</code>.</p>
+    <p>The file must appear on the D64 image under that same C64 filename. Do not add the <code>.kla</code> extension to the filename stored on the disk image.</p>
+    <p class="warning"><b>Do not change filenames after generating the PRG.</b> If an image is renamed on the D64 image, the slideshow will no longer be able to load it. Generate a new <code>SLIDESHOW.PRG</code> after changing filenames or image order.</p>
+  </section>
+
+  <section class="card">
+    <h2>Koala file handling</h2>
+    <p>The selected Koala files are used only for validation and preview inside the browser. They are not embedded in <code>SLIDESHOW.PRG</code>.</p>
+    <p>You must therefore copy every Koala file to the D64 image yourself. All slideshow files must be available on the selected C64 drive when the program runs.</p>
+    <p>The program loads the next image while the current Koala image remains visible. A small loading symbol appears in the lower-right corner during disk access.</p>
+  </section>
+
+  <section class="card">
+    <h2>Troubleshooting</h2>
+    <h3>The border turns red and the slideshow stops</h3>
+    <p>This indicates that the C64 could not load the requested image. Check that:</p>
+    <ul>
+      <li>The Koala file is present on the same D64 image as <code>SLIDESHOW.PRG</code>.</li>
+      <li>The filename on the D64 image matches the filename shown in the generator.</li>
+      <li>The filename does not include the host extension <code>.kla</code> or <code>.koa</code>.</li>
+      <li>The correct drive number was selected.</li>
+      <li>The disk image is mounted and accessible.</li>
+    </ul>
+
+    <h3>The preview is missing or rejected</h3>
+    <p>Make sure the selected file is a valid Koala image. Renaming another file type to <code>.kla</code> does not convert it.</p>
+
+    <h3>The slideshow loads the wrong image</h3>
+    <p>Check for duplicate or truncated filenames. C64 filenames are limited to 16 characters.</p>
+  </section>
+
+  <section class="card">
+    <h2>Disk contents example</h2>
+    <div class="status">0 "KOALA SHOW" 00 2A
+10  "SLIDESHOW"       PRG
+40  "PERSON"          PRG
+40  "WOMAN"           PRG
+40  "MAN"             PRG
+40  "CAMERA"          PRG
+40  "TV"              PRG
+BLOCKS FREE.</div>
+    <p class="note">DirMaster and C64 directory listings may display filenames using uppercase screen characters. This does not mean that you should enter uppercase letters in the generator.</p>
+  </section>
+
+  <section class="card">
+    <h2>Limitations</h2>
+    <ul>
+      <li>A maximum of 64 images is supported.</li>
+      <li>Each filename is limited to 16 characters. Please only use valid c64 filename characters.</li>
+      <li>The image files are not packed into the generated PRG.</li>
+      <li>The generator does not create D64 images.</li>
+      <li>Timed playback is designed for PAL timing.</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>

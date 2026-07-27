@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piramania C64 Media Linker 1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsSID Emulator for in-browser SID playback -->
+    <script src="https://cdn.jsdelivr.net/gh/og2t/jsSID@master/source/jsSID.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=VT323&display=swap');
+
+        :root {
+            --bg-dark: #0B0C10;
+            --panel-bg: #15171E;
+            --panel-border: rgba(255,255,255,0.08);
+            --c64-blue: #352879;
+            --c64-light-blue: #6C5EB5;
+            --accent-cyan: #00E5FF;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #E5E7EB;
+            background-image: 
+                radial-gradient(circle at 50% 0%, #1f2233 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, #171026 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        
+        .c64-font {
+            font-family: 'VT323', monospace;
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+        }
+
+        /* --- CRT & Monitor Styling --- */
+        .crt-bezel {
+            background: #050505;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 
+                inset 0 0 20px rgba(0,0,0,1),
+                0 10px 30px rgba(0,0,0,0.8),
+                0 0 0 1px #222;
+            position: relative;
+        }
+
+        canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            cursor: grab;
+            border-radius: 4px;
+            display: block;
+        }
+        canvas:active { cursor: grabbing; }
+
+        /* Fake Scanlines Overlay */
+        .scanlines {
+            position: absolute;
+            top: 12px; left: 12px; right: 12px; bottom: 12px;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            border-radius: 4px;
+            z-index: 10;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+        }
+
+        /* --- Custom Inputs --- */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: #2D3342;
+            border-radius: 2px;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        
+        .glow-text-blue { text-shadow: 0 0 10px rgba(108, 94, 181, 0.7); }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
+
+    <header class="bg-[#101218]/80 backdrop-blur-md border-b border-white/5 py-4 px-6 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-[#6C5EB5] to-[#352879] rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(108,94,181,0.5)] border border-white/10">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-white"><rect x="2" y="2" width="20" height="20" rx="4" ry="4"></rect><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold tracking-widest c64-font text-white glow-text-blue">Piramania C64 Media Linker</h1>
+                <div class="text-xs text-gray-400 font-medium tracking-wide">C64 KOALA MULTICOLOR + SID + SCROLLTEXT</div>
+            </div>
+        </div>
+        <div class="hidden sm:flex items-center gap-2">
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </span>
+            <span class="text-xs font-mono text-cyan-400 uppercase tracking-widest">System Ready</span>
+        </div>
+    </header>
+
+    <main class="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        
+        <div id="view-single" class="flex flex-col lg:flex-row gap-8 w-full">
+            
+            <!-- Left Column: Canvas Preview -->
+            <div class="flex-1 flex flex-col">
+                <div class="glass-panel p-2 flex-grow flex flex-col relative overflow-hidden">
+                    <div class="absolute top-5 left-5 z-20 bg-[#050505]/80 backdrop-blur text-xs px-3 py-1.5 rounded text-cyan-400 font-medium border border-cyan-500/30 shadow-[0_0_10px_rgba(0,229,255,0.2)] pointer-events-none uppercase tracking-wider" id="view-status">
+                        Live C64 / Koala Render
+                    </div>
+                    
+                    <!-- Canvas Container (CRT Monitor Bezel) -->
+                    <div class="flex-grow flex items-center justify-center p-4">
+                        <div class="crt-bezel w-full max-w-[664px]">
+                            <canvas id="preview-canvas" width="320" height="200" class="w-full aspect-[16/10] bg-black"></canvas>
+                            <div class="scanlines"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contextual Actions -->
+                <div class="mt-4 flex gap-3 justify-center">
+                    <button id="btn-reset-view" class="px-5 py-2.5 bg-[#1A1D24] hover:bg-[#252A36] text-gray-300 rounded-lg text-sm font-semibold transition-all border border-white/10 hover:border-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg" disabled>
+                        
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Controls -->
+            <div class="w-full lg:w-96 flex flex-col gap-6">
+                
+                <!-- Step 1: Visuals -->
+                <div class="glass-panel p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500 shadow-[0_0_15px_#00E5FF]"></div>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-widest c64-font mb-5 flex items-center gap-2">
+                        <span class="text-cyan-400">01.</span> Visuals / Koala
+                    </h2>
+                    
+                    <input type="file" id="image-upload" accept=".kla,.koa" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:uppercase file:tracking-wider file:font-bold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20 cursor-pointer border border-white/10 rounded-lg bg-[#0B0C10] transition-colors outline-none focus:border-cyan-500/50">
+                    
+                    <!-- Koala-only version: conversion controls are kept as hidden defaults so the proven generator code remains untouched. -->
+                    <div class="hidden" aria-hidden="true">
+                        <input type="range" id="adj-brightness" min="0" max="200" value="100">
+                        <input type="range" id="adj-contrast" min="0" max="200" value="100">
+                        <input type="range" id="adj-saturate" min="0" max="200" value="100">
+                        <span id="val-brightness">100%</span>
+                        <span id="val-contrast">100%</span>
+                        <span id="val-saturate">100%</span>
+                        <select id="filter-select"><option value="none" selected>Normal Filter</option></select>
+                        <select id="dither-select"><option value="none" selected>No Dither</option></select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                        <div>
+                            <label for="system-select" class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Farvepalette</label>
+                            <select id="system-select" class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-medium rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5 outline-none hover:border-white/20 transition-colors">
+                                <option value="pal">PAL (Pepto)</option>
+                                <option value="ntsc">NTSC (Colodore)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="border-colour-select" class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Border colour</label>
+                            <select id="border-colour-select" class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-medium rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5 outline-none hover:border-white/20 transition-colors">
+                                <option value="auto" selected>Automatic (Koala background)</option>
+                                <option value="0">0 - Black</option>
+                                <option value="1">1 - White</option>
+                                <option value="2">2 - Red</option>
+                                <option value="3">3 - Cyan</option>
+                                <option value="4">4 - Purple</option>
+                                <option value="5">5 - Green</option>
+                                <option value="6">6 - Blue</option>
+                                <option value="7">7 - Yellow</option>
+                                <option value="8">8 - Orange</option>
+                                <option value="9">9 - Brown</option>
+                                <option value="10">10 - Light red</option>
+                                <option value="11">11 - Dark grey</option>
+                                <option value="12">12 - Grey</option>
+                                <option value="13">13 - Light green</option>
+                                <option value="14">14 - Light blue</option>
+                                <option value="15">15 - Light grey</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                        <div>
+                            <label for="scroll-bg-colour-select" class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Scroll background</label>
+                            <select id="scroll-bg-colour-select" class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-medium rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5 outline-none hover:border-white/20 transition-colors">
+                                <option value="auto" selected>Automatic (Koala background)</option>
+                                <option value="0">0 - Black</option>
+                                <option value="1">1 - White</option>
+                                <option value="2">2 - Red</option>
+                                <option value="3">3 - Cyan</option>
+                                <option value="4">4 - Purple</option>
+                                <option value="5">5 - Green</option>
+                                <option value="6">6 - Blue</option>
+                                <option value="7">7 - Yellow</option>
+                                <option value="8">8 - Orange</option>
+                                <option value="9">9 - Brown</option>
+                                <option value="10">10 - Light red</option>
+                                <option value="11">11 - Dark grey</option>
+                                <option value="12">12 - Grey</option>
+                                <option value="13">13 - Light green</option>
+                                <option value="14">14 - Light blue</option>
+                                <option value="15">15 - Light grey</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="scroll-text-colour-select" class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Scroll text colour</label>
+                            <select id="scroll-text-colour-select" class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-medium rounded-lg focus:ring-cyan-500 focus:border-cyan-500 block w-full p-2.5 outline-none hover:border-white/20 transition-colors">
+                                <option value="0">0 - Black</option>
+                                <option value="1">1 - White</option>
+                                <option value="2">2 - Red</option>
+                                <option value="3">3 - Cyan</option>
+                                <option value="4">4 - Purple</option>
+                                <option value="5">5 - Green</option>
+                                <option value="6">6 - Blue</option>
+                                <option value="7">7 - Yellow</option>
+                                <option value="8">8 - Orange</option>
+                                <option value="9">9 - Brown</option>
+                                <option value="10">10 - Light red</option>
+                                <option value="11">11 - Dark grey</option>
+                                <option value="12">12 - Grey</option>
+                                <option value="13">13 - Light green</option>
+                                <option value="14">14 - Light blue</option>
+                                <option value="15" selected>15 - Light grey</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label class="mt-3 flex items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer">
+                        <input type="checkbox" id="match-border-scroll-input" class="w-4 h-4 accent-cyan-500">
+                        Match border to scroll background
+                    </label>
+                </div>
+
+                <!-- Step 2: Audio -->
+                <div class="glass-panel p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-purple-500 shadow-[0_0_15px_#A855F7]"></div>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-widest c64-font mb-5 flex items-center gap-2">
+                        <span class="text-purple-400">02.</span> Audio
+                    </h2>
+                    
+                    <input type="file" id="sid-upload" accept=".sid" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:uppercase file:tracking-wider file:font-bold file:bg-purple-500/10 file:text-purple-400 hover:file:bg-purple-500/20 cursor-pointer border border-white/10 rounded-lg bg-[#0B0C10] transition-colors outline-none focus:border-purple-500/50">
+                    
+                    <div id="sid-status" class="mt-4 p-4 bg-[#0B0C10] rounded-xl border border-white/5 text-[11px] text-gray-400 hidden flex-col gap-1.5 font-mono">
+                        <!-- Dynamic SID Info -->
+                    </div>
+
+                    <div id="sid-player-controls" class="mt-4 flex gap-3 hidden">
+                        <button id="btn-play-sid" class="px-4 py-2 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 hover:text-purple-100 rounded-lg text-xs uppercase tracking-wider font-bold transition-all flex-1 flex justify-center items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            Play SID
+                        </button>
+                        <button id="btn-stop-sid" class="px-4 py-2 bg-[#1A1D24] hover:bg-[#252A36] border border-white/10 hover:border-white/20 text-gray-400 hover:text-gray-200 rounded-lg text-xs uppercase tracking-wider font-bold transition-all flex-1 flex justify-center items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                            Pause
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Export -->
+                <div class="glass-panel p-6 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500 shadow-[0_0_15px_#10B981]"></div>
+                    <h2 class="text-sm font-bold text-white uppercase tracking-widest c64-font mb-5 flex items-center gap-2">
+                        <span class="text-emerald-400">03.</span> Export
+                    </h2>
+                    
+
+                    <div class="mt-4">
+                        <label for="scrolltext-input" class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Scroll text (max 500 chars)</label>
+                        <textarea id="scrolltext-input" maxlength="500" rows="3" placeholder="Skriv PETSCII-scrolltekst her..." class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-mono rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-3 outline-none hover:border-white/20 transition-colors resize-none"></textarea>
+                        <div class="mt-2 text-[10px] leading-relaxed text-yellow-300/80 bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">The scroller overwrites the last 8 rows of pixels of the image.</div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="flex items-center gap-3 text-[11px] font-bold text-gray-300 uppercase tracking-wider cursor-pointer">
+                            <input type="checkbox" id="autoload-enabled-input" class="w-4 h-4 accent-emerald-500">
+                            Load another file with SPACE
+                        </label>
+                        <div id="autoload-options" class="mt-3 opacity-50">
+                            <label for="autoload-filename-input" class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Filename to be loaded from device 8</label>
+                            <input type="text" id="autoload-filename-input" maxlength="16" placeholder="Fx NEXT" disabled class="bg-[#0B0C10] border border-white/10 text-gray-300 text-xs font-mono rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-3 outline-none hover:border-white/20 transition-colors uppercase disabled:cursor-not-allowed">
+                            <div class="mt-2 text-[10px] leading-relaxed text-cyan-300/80 bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2">When activated, the file is loaded when user hits SPACE bar. Enter filename without .PRG.</div>
+                        </div>
+                    </div>
+
+                    <div class="flex shadow-inner rounded-lg bg-[#0B0C10] border border-white/10 focus-within:border-emerald-500/50 transition-colors mt-4">
+                        <input type="text" id="filename-input" value="blokify2" class="bg-transparent text-white text-sm block w-full p-3 outline-none font-mono">
+                        <span class="inline-flex items-center px-4 text-sm text-emerald-500 font-bold border-l border-white/10 font-mono bg-emerald-500/5 rounded-r-lg">
+                            .prg
+                        </span>
+                    </div>
+
+                    <button id="btn-export" class="w-full mt-4 px-4 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold tracking-wide transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex justify-center items-center gap-2" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        COMPILE TO PRG
+                    </button>
+                </div>
+
+                <!-- System Messages -->
+                <div id="system-message" class="text-sm font-medium p-4 rounded-lg hidden transition-all shadow-lg border backdrop-blur-sm"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- 1. CORE DATA & STATE ---
+
+        // C64 Color Palettes (RGB)
+        const PALETTES = {
+            pepto: [
+                [0,0,0],       // 0: Black
+                [255,255,255], // 1: White
+                [104,55,43],   // 2: Red
+                [112,164,178], // 3: Cyan
+                [111,61,134],  // 4: Purple
+                [88,141,67],   // 5: Green
+                [53,40,121],   // 6: Blue
+                [184,199,111], // 7: Yellow
+                [111,79,37],   // 8: Orange
+                [67,57,0],     // 9: Brown
+                [154,103,89],  // 10: Light Red
+                [68,68,68],    // 11: Dark Grey
+                [108,108,108], // 12: Grey
+                [154,210,132], // 13: Light Green
+                [108,94,181],  // 14: Light Blue
+                [149,149,149]  // 15: Light Grey
+            ],
+            ntsc: [
+                [0,0,0],       // 0: Black
+                [255,255,255], // 1: White
+                [136,57,50],   // 2: Red
+                [103,182,189], // 3: Cyan
+                [139,63,150],  // 4: Purple
+                [85,160,73],   // 5: Green
+                [64,49,141],   // 6: Blue
+                [191,206,114], // 7: Yellow
+                [139,84,41],   // 8: Orange
+                [87,66,0],     // 9: Brown
+                [184,105,98],  // 10: Light Red
+                [80,80,80],    // 11: Dark Grey
+                [120,120,120], // 12: Grey
+                [148,224,137], // 13: Light Green
+                [120,105,196], // 14: Light Blue
+                [153,153,153]  // 15: Light Grey
+            ]
+        };
+
+        const C64_WIDTH = 320;
+        const C64_HEIGHT = 200;
+
+        let AppState = {
+            imageLoaded: false,
+            sourceImage: null,
+            imgX: 0, imgY: 0, imgScale: 1,
+            isDragging: false, dragStartX: 0, dragStartY: 0,
+            brightness: 100, contrast: 100, saturate: 100, filter: 'none',
+            system: 'pal', borderColour: 'auto', scrollBgColour: 'auto', scrollTextColour: '15', matchBorderToScroll: false,
+            bitmapRam: null, screenRam: null,
+            
+            sidInfo: null, sidFile: null, sidPlayer: null, sidBlobUrl: null,
+            memorySetup: { bank: 0, cia: 0x03, bitmap: 0x2000, screen: 0x0C00 }
+        };
+
+        const canvas = document.getElementById('preview-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        const ui = {
+            imageUpload: document.getElementById('image-upload'),
+            sidUpload: document.getElementById('sid-upload'),
+            filenameInput: document.getElementById('filename-input'),
+            btnReset: document.getElementById('btn-reset-view'),
+            btnExport: document.getElementById('btn-export'),
+            sidStatus: document.getElementById('sid-status'),
+            sysMsg: document.getElementById('system-message'),
+            adjBrightness: document.getElementById('adj-brightness'),
+            adjContrast: document.getElementById('adj-contrast'),
+            adjSaturate: document.getElementById('adj-saturate'),
+            systemSelect: document.getElementById('system-select'),
+            borderColourSelect: document.getElementById('border-colour-select'),
+            scrollBgColourSelect: document.getElementById('scroll-bg-colour-select'),
+            scrollTextColourSelect: document.getElementById('scroll-text-colour-select'),
+            matchBorderScrollInput: document.getElementById('match-border-scroll-input'),
+            filterSelect: document.getElementById('filter-select'),
+            ditherSelect: document.getElementById('dither-select'),
+            valBrightness: document.getElementById('val-brightness'),
+            valContrast: document.getElementById('val-contrast'),
+            valSaturate: document.getElementById('val-saturate'),
+            btnPlaySid: document.getElementById('btn-play-sid'),
+            btnStopSid: document.getElementById('btn-stop-sid'),
+            sidPlayerControls: document.getElementById('sid-player-controls'),
+            scrollTextInput: document.getElementById('scrolltext-input'),
+            autoloadFilenameInput: document.getElementById('autoload-filename-input'),
+            autoloadEnabledInput: document.getElementById('autoload-enabled-input'),
+            autoloadOptions: document.getElementById('autoload-options')
+        };
+
+        function showMessage(msg, type = 'info') {
+            ui.sysMsg.innerHTML = msg;
+            ui.sysMsg.className = `text-sm font-medium p-4 rounded-lg transition-all mt-4 block border shadow-lg backdrop-blur-sm`;
+            if (type === 'error') ui.sysMsg.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/50');
+            else if (type === 'warning') ui.sysMsg.classList.add('bg-yellow-500/20', 'text-yellow-300', 'border-yellow-500/50');
+            else ui.sysMsg.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/50');
+            setTimeout(() => ui.sysMsg.classList.add('hidden'), 6000);
+        }
+
+        // --- 2. DYNAMIC MEMORY ALLOCATOR ---
+        function calculateMemorySetup(sid) {
+            const setups = [
+                { bank: 0, cia: 0x03, bitmap: 0x2000, screen: 0x0C00 }, // Standard (Frees $4000-$FFFF)
+                { bank: 1, cia: 0x02, bitmap: 0x6000, screen: 0x4C00 }, // Avoids $1000-$3FFF
+                { bank: 2, cia: 0x01, bitmap: 0xA000, screen: 0x8C00 }, // Avoids $1000-$7FFF
+                { bank: 3, cia: 0x00, bitmap: 0xE000, screen: 0xCC00 }  // Avoids $1000-$BFFF
+            ];
+
+            if (!sid) return { setup: setups[0], warning: '' };
+
+            let sidStart = sid.loadAddr;
+            let sidEnd = sid.loadAddr + sid.data.length - 1;
+
+            for (let i = 0; i < setups.length; i++) {
+                let setup = setups[i];
+                let overlap = false;
+
+                // Code & Stack Zone ($0800-$0A00)
+                if (sidStart <= 0x0A00 && sidEnd >= 0x0800) overlap = true;
+                // Screen RAM (1000 bytes)
+                if (sidStart <= (setup.screen + 1000) && sidEnd >= setup.screen) overlap = true;
+                // Bitmap RAM (8000 bytes)
+                if (sidStart <= (setup.bitmap + 8000) && sidEnd >= setup.bitmap) overlap = true;
+
+                if (!overlap) return { setup: setup, warning: '' };
+            }
+
+            return { 
+                setup: setups[0], 
+                warning: '<div class="text-red-400 mt-2 bg-red-950/50 p-2 rounded border border-red-500/30">⚠️ Error: SID footprint covers all available video banks. PRG compilation may fail.</div>' 
+            };
+        }
+
+        const BAYER_MATRIX = [
+            [ 0, 48, 12, 60,  3, 51, 15, 63], [32, 16, 44, 28, 35, 19, 47, 31],
+            [ 8, 56,  4, 52, 11, 59,  7, 55], [40, 24, 36, 20, 43, 27, 39, 23],
+            [ 2, 50, 14, 62,  1, 49, 13, 61], [34, 18, 46, 30, 33, 17, 45, 29],
+            [10, 58,  6, 54,  9, 57,  5, 53], [42, 26, 38, 22, 41, 25, 37, 21]
+        ].map(row => row.map(v => (v + 0.5) / 64));
+
+        const HALFTONE_MATRIX = [
+            [ 14, 10, 11, 15 ], [  9,  3,  0,  4 ],
+            [  8,  2,  1,  5 ], [ 13,  7,  6, 12 ]
+        ].map(row => row.map(v => (v + 0.5) / 16));
+
+        const PATTERN_MATRIX = [
+            [  0,  8,  2, 10 ], [ 12,  4, 14,  6 ],
+            [  3, 11,  1,  9 ], [ 15,  7, 13,  5 ]
+        ].map(row => row.map(v => (v + 0.5) / 16));
+
+        function getRGBDist(r1, g1, b1, palIdx, palette) {
+            const r2 = palette[palIdx][0], g2 = palette[palIdx][1], b2 = palette[palIdx][2];
+            return (r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2;
+        }
+
+
+        function parseKoala(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let offset = 0;
+
+            // Standard Koala Painter files are 10003 bytes: 2-byte load address
+            // ($6000), 8000 bitmap, 1000 screen, 1000 color RAM, 1 background.
+            // Some exported .kla/.koa files omit the 2-byte load address and are
+            // therefore 10001 bytes.
+            if (bytes.length === 10003) {
+                const loadAddr = bytes[0] | (bytes[1] << 8);
+                if (loadAddr !== 0x6000 && loadAddr !== 0x2000) {
+                    throw new Error('Unexpected Koala load address $' + loadAddr.toString(16).padStart(4, '0') + '.');
+                }
+                offset = 2;
+            } else if (bytes.length === 10001) {
+                offset = 0;
+            } else {
+                throw new Error('Koala files must be 10003 bytes with load address, or 10001 bytes raw.');
+            }
+
+            return {
+                bitmap: bytes.slice(offset, offset + 8000),
+                screen: bytes.slice(offset + 8000, offset + 9000),
+                color: bytes.slice(offset + 9000, offset + 10000),
+                background: bytes[offset + 10000] & 0x0F
+            };
+        }
+
+        function renderKoalaToCanvas() {
+            const activePalette = PALETTES[AppState.system] || PALETTES.pepto;
+            const imgData = ctx.createImageData(C64_WIDTH, C64_HEIGHT);
+            const data = imgData.data;
+
+            for (let by = 0; by < 25; by++) {
+                for (let bx = 0; bx < 40; bx++) {
+                    const cell = by * 40 + bx;
+                    const screenByte = AppState.screenRam[cell];
+                    const colors = [
+                        AppState.backgroundColor & 0x0F,
+                        (screenByte >> 4) & 0x0F,
+                        screenByte & 0x0F,
+                        AppState.colorRam[cell] & 0x0F
+                    ];
+
+                    for (let y = 0; y < 8; y++) {
+                        const b = AppState.bitmapRam[cell * 8 + y];
+                        for (let pair = 0; pair < 4; pair++) {
+                            const colorIndex = colors[(b >> (6 - pair * 2)) & 0x03];
+                            const rgb = activePalette[colorIndex];
+                            const px0 = bx * 8 + pair * 2;
+                            const py = by * 8 + y;
+
+                            for (let dx = 0; dx < 2; dx++) {
+                                const pos = ((py * C64_WIDTH) + px0 + dx) * 4;
+                                data[pos] = rgb[0];
+                                data[pos + 1] = rgb[1];
+                                data[pos + 2] = rgb[2];
+                                data[pos + 3] = 255;
+                            }
+                        }
+                    }
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function loadKoalaFile(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const koala = parseKoala(event.target.result);
+                    AppState.bitmapRam = koala.bitmap;
+                    AppState.screenRam = koala.screen;
+                    AppState.colorRam = koala.color;
+                    AppState.backgroundColor = koala.background;
+                    AppState.koalaMode = true;
+                    AppState.koalaFileName = file.name;
+                    AppState.imageLoaded = true;
+                    AppState.sourceImage = null;
+
+                    ui.btnReset.disabled = true;
+                    ui.btnExport.disabled = false;
+                    renderC64();
+                    showMessage("Koala file loaded without conversion: " + file.name, "success");
+                } catch (err) {
+                    AppState.koalaMode = false;
+                    showMessage("Failed to parse Koala file: " + err.message, "error");
+                    ui.imageUpload.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderC64() {
+            if (!AppState.imageLoaded) {
+                ctx.fillStyle = '#050505';
+                ctx.fillRect(0, 0, C64_WIDTH, C64_HEIGHT);
+                ctx.fillStyle = '#1A1D24';
+                ctx.font = '16px "VT323", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('AWAITING SIGNAL...', C64_WIDTH / 2, C64_HEIGHT / 2);
+                return;
+            }
+
+            if (AppState.koalaMode) {
+                renderKoalaToCanvas();
+                return;
+            }
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, C64_WIDTH, C64_HEIGHT);
+            
+            let filterString = `brightness(${AppState.brightness}%) contrast(${AppState.contrast}%) saturate(${AppState.saturate}%)`;
+            switch(AppState.filter) {
+                case 'grayscale': filterString += ' grayscale(100%)'; break;
+                case 'sepia': filterString += ' sepia(100%)'; break;
+                case 'invert': filterString += ' invert(100%)'; break;
+                case 'complementary': filterString += ' hue-rotate(180deg)'; break;
+                case 'analogous': filterString += ' hue-rotate(30deg)'; break;
+                case 'triadic': filterString += ' hue-rotate(120deg)'; break;
+                case 'cyberpunk': filterString += ' saturate(200%) hue-rotate(-45deg) contrast(120%)'; break;
+                case 'crimson': filterString += ' sepia(100%) hue-rotate(320deg) saturate(300%) contrast(120%)'; break;
+                case 'alien': filterString += ' invert(100%) hue-rotate(90deg) saturate(200%)'; break;
+            }
+            ctx.filter = filterString;
+
+            ctx.drawImage(
+                AppState.sourceImage, AppState.imgX, AppState.imgY, 
+                AppState.sourceImage.width * AppState.imgScale, 
+                AppState.sourceImage.height * AppState.imgScale
+            );
+            ctx.filter = 'none';
+
+            const activePalette = PALETTES[AppState.system] || PALETTES.pepto;
+            const ditherMode = ui.ditherSelect.value;
+            const imgData = ctx.getImageData(0, 0, C64_WIDTH, C64_HEIGHT);
+            const data = imgData.data;
+
+            // ... Complex block Dithering calculation
+            // Fallback for simplicity: Simple ordered dither assignment
+            const c64Data = new Uint8Array(C64_WIDTH * C64_HEIGHT);
+            for (let i = 0; i < data.length; i += 4) {
+                let bestColor = 0, bestDist = Infinity;
+                for (let c = 0; c < 16; c++) {
+                    const dist = getRGBDist(data[i], data[i+1], data[i+2], c, activePalette);
+                    if (dist < bestDist) { bestDist = dist; bestColor = c; }
+                }
+                c64Data[i/4] = bestColor;
+            }
+
+            const bitmapRam = new Uint8Array(8000); 
+            const screenRam = new Uint8Array(1000);
+            let bitmapIdx = 0, screenIdx = 0;
+
+            for (let by = 0; by < 25; by++) {
+                for (let bx = 0; bx < 40; bx++) {
+                    const colorCounts = new Array(16).fill(0);
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            colorCounts[c64Data[(by * 8 + y) * C64_WIDTH + (bx * 8 + x)]]++;
+                        }
+                    }
+
+                    let color1 = 0, max1 = -1;
+                    for (let i = 0; i < 16; i++) { if (colorCounts[i] > max1) { max1 = colorCounts[i]; color1 = i; } }
+                    let color2 = 0, max2 = -1;
+                    for (let i = 0; i < 16; i++) { if (i !== color1 && colorCounts[i] > max2) { max2 = colorCounts[i]; color2 = i; } }
+
+                    screenRam[screenIdx++] = (color1 << 4) | color2;
+
+                    for (let y = 0; y < 8; y++) {
+                        let byteVal = 0;
+                        for (let x = 0; x < 8; x++) {
+                            const px = bx * 8 + x;
+                            const py = by * 8 + y;
+                            const pixelIdx = py * C64_WIDTH + px;
+                            
+                            const origR = data[pixelIdx*4], origG = data[pixelIdx*4 + 1], origB = data[pixelIdx*4 + 2];
+                            const distSq1 = getRGBDist(origR, origG, origB, color1, activePalette);
+                            const distSq2 = getRGBDist(origR, origG, origB, color2, activePalette);
+                            
+                            let bit = 0;
+                            if (distSq1 === 0 && distSq2 === 0) bit = 1;
+                            else if (ditherMode === 'bayer') {
+                                const ratio = Math.sqrt(distSq1) / (Math.sqrt(distSq1) + Math.sqrt(distSq2));
+                                bit = (ratio <= BAYER_MATRIX[py % 8][px % 8]) ? 1 : 0;
+                            } else if (ditherMode === 'halftone') {
+                                const ratio = Math.sqrt(distSq1) / (Math.sqrt(distSq1) + Math.sqrt(distSq2));
+                                bit = (ratio <= HALFTONE_MATRIX[py % 4][px % 4]) ? 1 : 0;
+                            } else if (ditherMode === 'pattern') {
+                                const ratio = Math.sqrt(distSq1) / (Math.sqrt(distSq1) + Math.sqrt(distSq2));
+                                bit = (ratio <= PATTERN_MATRIX[py % 4][px % 4]) ? 1 : 0;
+                            } else bit = (distSq1 <= distSq2) ? 1 : 0;
+
+                            byteVal = (byteVal << 1) | bit;
+                            const finalColor = bit ? color1 : color2;
+                            data[pixelIdx*4] = activePalette[finalColor][0];
+                            data[pixelIdx*4 + 1] = activePalette[finalColor][1];
+                            data[pixelIdx*4 + 2] = activePalette[finalColor][2];
+                            data[pixelIdx*4 + 3] = 255;
+                        }
+                        bitmapRam[bitmapIdx++] = byteVal;
+                    }
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+            AppState.bitmapRam = bitmapRam;
+            AppState.screenRam = screenRam;
+            AppState.colorRam = null;
+            AppState.backgroundColor = 0;
+        }
+
+        function resetView() {
+            if (!AppState.imageLoaded || AppState.koalaMode) return;
+            AppState.imgScale = Math.max(C64_WIDTH / AppState.sourceImage.width, C64_HEIGHT / AppState.sourceImage.height); 
+            AppState.imgX = (C64_WIDTH - (AppState.sourceImage.width * AppState.imgScale)) / 2;
+            AppState.imgY = (C64_HEIGHT - (AppState.sourceImage.height * AppState.imgScale)) / 2;
+            renderC64();
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!AppState.imageLoaded) return;
+            AppState.isDragging = true;
+            AppState.dragStartX = e.clientX - AppState.imgX;
+            AppState.dragStartY = e.clientY - AppState.imgY;
+        });
+        window.addEventListener('mouseup', () => AppState.isDragging = false);
+        window.addEventListener('mousemove', (e) => {
+            if (AppState.isDragging) {
+                AppState.imgX = e.clientX - AppState.dragStartX;
+                AppState.imgY = e.clientY - AppState.dragStartY;
+                renderC64();
+            }
+        });
+        canvas.addEventListener('wheel', (e) => {
+            if (!AppState.imageLoaded) return;
+            e.preventDefault();
+            const newScale = Math.max(0.1, AppState.imgScale * (1 - e.deltaY * 0.001));
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+            AppState.imgX = mouseX - (mouseX - AppState.imgX) * (newScale / AppState.imgScale);
+            AppState.imgY = mouseY - (mouseY - AppState.imgY) * (newScale / AppState.imgScale);
+            AppState.imgScale = newScale;
+            renderC64();
+        }, { passive: false });
+
+        ui.imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const lowerName = file.name.toLowerCase();
+            if (lowerName.endsWith('.kla') || lowerName.endsWith('.koa')) {
+                loadKoalaFile(file);
+                return;
+            }
+
+            showMessage("Kun Koala-filer (.KLA eller .KOA) understøttes i denne version.", "error");
+            ui.imageUpload.value = '';
+            return;
+
+            AppState.koalaMode = false;
+            AppState.colorRam = null;
+            AppState.backgroundColor = 0;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    AppState.sourceImage = img; AppState.imageLoaded = true;
+                    ui.btnReset.disabled = false; ui.btnExport.disabled = false;
+                    resetView();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        ui.btnReset.addEventListener('click', resetView);
+        
+        ['Brightness', 'Contrast', 'Saturate'].forEach(id => {
+            ui[`adj${id}`].addEventListener('input', (e) => {
+                AppState[id.toLowerCase()] = e.target.value;
+                ui[`val${id}`].textContent = e.target.value + '%';
+                renderC64();
+            });
+        });
+        
+        ui.systemSelect.addEventListener('change', (e) => { 
+            AppState.system = e.target.value; 
+            renderC64(); 
+        });
+        ui.borderColourSelect.addEventListener('change', (e) => {
+            AppState.borderColour = e.target.value;
+        });
+        ui.scrollBgColourSelect.addEventListener('change', (e) => {
+            AppState.scrollBgColour = e.target.value;
+        });
+        ui.scrollTextColourSelect.addEventListener('change', (e) => {
+            AppState.scrollTextColour = e.target.value;
+        });
+        ui.matchBorderScrollInput.addEventListener('change', (e) => {
+            AppState.matchBorderToScroll = e.target.checked;
+        });
+        
+        ui.filterSelect.addEventListener('change', (e) => { AppState.filter = e.target.value; renderC64(); });
+        ui.ditherSelect.addEventListener('change', () => renderC64());
+
+        ui.sidUpload.addEventListener('change', (e) => {
+            if (AppState.sidPlayer) { try { AppState.sidPlayer.pause(); } catch(err) {} }
+            if (AppState.sidBlobUrl) { URL.revokeObjectURL(AppState.sidBlobUrl); AppState.sidBlobUrl = null; }
+
+            const file = e.target.files[0];
+            if (!file) {
+                AppState.sidInfo = null; AppState.sidFile = null;
+                ui.sidStatus.classList.add('hidden'); ui.sidPlayerControls.classList.add('hidden');
+                return;
+            }
+
+            AppState.sidFile = file;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const buffer = event.target.result;
+                const view = new DataView(buffer);
+                try {
+                    const magic = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3));
+                    if (magic !== 'PSID' && magic !== 'RSID') throw new Error('Not a valid PSID or RSID file.');
+
+                    const dataOffset = view.getUint16(6);
+                    let loadAddr = view.getUint16(8);
+                    let initAddr = view.getUint16(10);
+                    let playAddr = view.getUint16(12);
+                    let title = "", author = "";
+                    
+                    if (dataOffset >= 0x7C) {
+                        for(let i=0; i<32; i++) {
+                            let c1 = view.getUint8(0x16 + i), c2 = view.getUint8(0x36 + i);
+                            if (c1 !== 0) title += String.fromCharCode(c1);
+                            if (c2 !== 0) author += String.fromCharCode(c2);
+                        }
+                    }
+
+                    // PSID Speed Flag parsing for CIA vs VBI timing
+                    const version = view.getUint16(4);
+                    const speedWord = view.getUint16(version === 1 ? 0x12 : 0x14);
+                    const useCia = (speedWord & 1) === 1;
+
+                    let sidData = new Uint8Array(buffer, dataOffset);
+                    if (loadAddr === 0) { loadAddr = sidData[0] | (sidData[1] << 8); sidData = sidData.slice(2); }
+                    if (initAddr === 0) initAddr = loadAddr;
+
+                    AppState.sidInfo = { loadAddr, initAddr, playAddr, data: sidData, title, author, useCia };
+                    
+                    const memCheck = calculateMemorySetup(AppState.sidInfo);
+                    AppState.memorySetup = memCheck.setup;
+
+                    ui.sidStatus.innerHTML = `
+                        <div class="text-purple-400 font-bold mb-1">▶ ${title || 'Unknown SID'}</div>
+                        <div class="text-gray-500">BY: <span class="text-gray-300">${author || 'Unknown'}</span></div>
+                        <div class="text-gray-500 mt-1">L: $${loadAddr.toString(16).padStart(4,'0')} | I: $${initAddr.toString(16).padStart(4,'0')} | P: $${playAddr.toString(16).padStart(4,'0')}</div>
+                        <div class="text-purple-400/80 text-xs mt-1 font-bold">TIMING: ${useCia ? 'CIA 1 Timer (60Hz)' : 'VBI Raster (50Hz)'}</div>
+                        <div class="text-cyan-400 text-xs mt-2 font-bold border-t border-white/5 pt-2">✓ ASSIGNED TO VIC-II BANK ${memCheck.setup.bank}</div>
+                        ${memCheck.warning}
+                    `;
+                    ui.sidStatus.classList.remove('hidden'); ui.sidStatus.classList.add('flex');
+                    ui.sidPlayerControls.classList.remove('hidden');
+                    showMessage("SID file parsed successfully.", "success");
+                } catch (err) {
+                    AppState.sidInfo = null; AppState.sidFile = null;
+                    AppState.memorySetup = { bank: 0, cia: 0x03, bitmap: 0x2000, screen: 0x0C00 };
+                    ui.sidStatus.classList.add('hidden'); ui.sidPlayerControls.classList.add('hidden');
+                    showMessage("Failed to parse SID file: " + err.message, "error");
+                    ui.sidUpload.value = ''; 
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        ui.btnPlaySid.addEventListener('click', () => {
+            if (!AppState.sidFile) return;
+            if (typeof jsSID === 'undefined') { showMessage("jsSID emulator failed to load.", "error"); return; }
+
+            // Ensure Audio Context is created upon user gesture
+            if (!AppState.sidPlayer) {
+                AppState.sidPlayer = new jsSID(16384, 0.0005);
+            }
+
+            if (!AppState.sidBlobUrl) {
+                AppState.sidBlobUrl = URL.createObjectURL(AppState.sidFile);
+                AppState.sidPlayer.loadinit(AppState.sidBlobUrl);
+                
+                setTimeout(() => {
+                    if (AppState.sidPlayer) AppState.sidPlayer.playcont();
+                }, 150);
+            } else {
+                AppState.sidPlayer.playcont();
+            }
+        });
+
+        ui.btnStopSid.addEventListener('click', () => {
+            if (AppState.sidPlayer) { try { AppState.sidPlayer.pause(); } catch(err) {} }
+        });
+
+        function exportPRG() {
+            if (!AppState.bitmapRam || !AppState.screenRam) { showMessage("Process the image first!", "error"); return; }
+
+            const sid = AppState.sidInfo;
+            const scrollTextRaw = (ui.scrollTextInput ? ui.scrollTextInput.value : '').slice(0, 500);
+            const scrollEnabled = scrollTextRaw.trim().length > 0;
+            const autoloadRequested = !!(ui.autoloadEnabledInput && ui.autoloadEnabledInput.checked);
+            const autoloadNameRaw = (ui.autoloadFilenameInput ? ui.autoloadFilenameInput.value : '').trim().toUpperCase().slice(0, 16);
+            const autoloadEnabled = autoloadRequested && autoloadNameRaw.length > 0;
+
+            if (autoloadRequested && !autoloadNameRaw) {
+                showMessage("Enter file to be loaded, or disable SPACE-loader.", "warning");
+                return;
+            }
+
+            if (scrollEnabled && !AppState.koalaMode) {
+                showMessage("Scrolltekst er i denne testversion kun aktiveret for Koala/KLA, ikke for konverterede JPG/PNG-billeder.", "warning");
+                return;
+            }
+
+            let mem = new Uint8Array(65536);
+            let usedMemory = new Uint8Array(65536);
+
+            function writeMem(addr, dataArray) {
+                for(let i=0; i<dataArray.length; i++) {
+                    mem[addr + i] = dataArray[i];
+                    usedMemory[addr + i] = 1;
+                }
+            }
+
+            function rangesOverlap(aStart, aEnd, bStart, bEnd) { return aStart <= bEnd && aEnd >= bStart; }
+            function findFreeBlock(size, setup, sid, extraReserved = []) {
+                const reserved = [
+                    [0x0800, 0x0BFF],
+                    [setup.screen, setup.screen + 999],
+                    [setup.bitmap, setup.bitmap + 7999],
+                    ...extraReserved
+                ];
+                if (sid) reserved.push([sid.loadAddr, sid.loadAddr + sid.data.length - 1]);
+                const candidates = [
+                    0x1000, 0x1400, 0x1800, 0x1C00, 0x2400, 0x2800, 0x2C00,
+                    0x3000, 0x3400, 0x3800, 0x3C00, 0x5000, 0x5400, 0x5800, 0x5C00,
+                    0x7000, 0x7400, 0x7800, 0x7C00, 0x9000, 0x9400, 0x9800, 0x9C00,
+                    0xB000, 0xB400, 0xB800, 0xBC00, 0xE000, 0xE400, 0xE800, 0xEC00
+                ];
+                for (const addr of candidates) {
+                    const end = addr + size - 1;
+                    if (end > 0xFFFF) continue;
+                    let conflict = false;
+                    for (const r of reserved) if (rangesOverlap(addr, end, r[0], r[1])) { conflict = true; break; }
+                    if (!conflict) return addr;
+                }
+                throw new Error('Could not find a safe temporary memory block.');
+            }
+
+
+            function petsciiFilenameCode(ch) {
+                const c = ch.charCodeAt(0);
+                if (c >= 97 && c <= 122) return c - 32;
+                if (c >= 32 && c <= 95) return c;
+                return 32;
+            }
+
+            function petsciiScreenCode(ch) {
+                const c = ch.charCodeAt(0);
+                if (c >= 65 && c <= 90) return c - 64;          // A-Z
+                if (c >= 97 && c <= 122) return c - 96;         // a-z shown as C64 uppercase letters
+                if (c >= 48 && c <= 57) return c;               // 0-9
+                if (ch === ' ') return 32;
+                if (ch === '.') return 46;
+                if (ch === ',') return 44;
+                if (ch === '!') return 33;
+                if (ch === '?') return 63;
+                if (ch === ':') return 58;
+                if (ch === ';') return 59;
+                if (ch === '-') return 45;
+                if (ch === '+') return 43;
+                if (ch === '/') return 47;
+                if (ch === '(') return 40;
+                if (ch === ')') return 41;
+                if (ch === '=') return 61;
+                if (ch === '*') return 42;
+                if (ch === "'") return 39;
+                if (ch === '"') return 34;
+                return 32;
+            }
+
+            let setup = AppState.memorySetup;
+            if (scrollEnabled && !(setup.bank === 0 || setup.bank === 2)) {
+                showMessage("Something is wrong. Probably the selected SID forces the imageto another VIC-bank - try another SID.", "error");
+                return;
+            }
+
+            let koalaColorSrc = 0;
+            let scrollDataAddr = 0;
+            let scrollCodes = null;
+            let scrollWrapLength = 0;
+            let autoloadNameBytes = null;
+            const extraReserved = [];
+
+            if (AppState.koalaMode && AppState.colorRam) {
+                koalaColorSrc = findFreeBlock(1024, setup, sid, extraReserved);
+                extraReserved.push([koalaColorSrc, koalaColorSrc + 1023]);
+            }
+
+            if (scrollEnabled) {
+                const normalized = ('                                        ' + scrollTextRaw.replace(new RegExp('[\\r\\n\\t]+', 'g'), ' ') + '                                        ');
+                scrollWrapLength = Math.max(1, normalized.length);
+                // Store 40 extra duplicated characters after the wrap point. This lets the IRQ copy
+                // one full 40-column line without doing pointer wrap logic inside the raster routine.
+                scrollCodes = new Uint8Array(scrollWrapLength + 40);
+                for (let i = 0; i < scrollCodes.length; i++) scrollCodes[i] = petsciiScreenCode(normalized[i % scrollWrapLength] || ' ');
+                scrollDataAddr = findFreeBlock(scrollCodes.length + 2, setup, sid, extraReserved);
+                extraReserved.push([scrollDataAddr, scrollDataAddr + scrollCodes.length + 1]);
+            }
+
+            if (autoloadEnabled) {
+                autoloadNameBytes = new Uint8Array(autoloadNameRaw.length);
+                for (let i = 0; i < autoloadNameRaw.length; i++) {
+                    autoloadNameBytes[i] = petsciiFilenameCode(autoloadNameRaw[i]);
+                }
+            }
+
+            const exportScreenRam = new Uint8Array(AppState.screenRam);
+            let exportColorRam = AppState.colorRam ? new Uint8Array(AppState.colorRam) : null;
+            if (scrollEnabled) {
+                for (let i = 0; i < 40; i++) exportScreenRam[24 * 40 + i] = scrollCodes[i % scrollCodes.length];
+                if (exportColorRam) for (let i = 0; i < 40; i++) exportColorRam[24 * 40 + i] = (parseInt(AppState.scrollTextColour, 10) & 0x0F);
+            }
+
+            const basicStub = [0x0B, 0x08, 0x0A, 0x00, 0x9E, 0x32, 0x30, 0x36, 0x34, 0x00, 0x00, 0x00];
+            writeMem(0x0801, basicStub);
+
+            const bankBase = setup.bank * 16384;
+            const scrnVal = (setup.screen - bankBase) / 1024;
+            const bmpVal = (setup.bitmap - bankBase) / 8192;
+            const d018BitmapVal = (scrnVal << 4) | (bmpVal << 3);
+            const d018TextVal = (scrnVal << 4) | 0x04; // screen RAM + C64 character ROM at $1000/$9000 (char base bits = 2)
+            const screenBottomRow = setup.screen + 24 * 40;
+            const scrollVar = 0x0B00;
+            const scrollPtr = 0x0B01; // two bytes, $0B01/$0B02
+
+            let mc = [];
+            function b(v){ mc.push(v & 0xFF); }
+            function w(v){ b(v); b(v >> 8); }
+            function ldaImm(v){ b(0xA9); b(v); }
+            function ldxImm(v){ b(0xA2); b(v); }
+            function staAbs(a){ b(0x8D); w(a); }
+            function stxAbs(a){ b(0x8E); w(a); }
+            function ldaAbs(a){ b(0xAD); w(a); }
+            function andImm(v){ b(0x29); b(v); }
+            function oraImm(v){ b(0x09); b(v); }
+            function jsr(a){ b(0x20); w(a); }
+            function jmp(a){ b(0x4C); w(a); }
+            function patchWord(idx, val){ mc[idx] = val & 0xFF; mc[idx+1] = val >> 8; }
+            const codeBase = 0x0810;
+
+            // Init video, bank and color RAM.
+            b(0x78); // SEI
+            ldaImm(0x37); staAbs(0x0001); // keep KERNAL + I/O visible for IRQ vectors and VIC/SID registers
+            ldaImm(0x3B); staAbs(0xD011);
+            ldaImm(AppState.koalaMode ? 0x18 : 0x08); staAbs(0xD016);
+            ldaAbs(0xDD00); andImm(0xFC); oraImm(setup.cia); staAbs(0xDD00);
+            ldaImm(d018BitmapVal); staAbs(0xD018);
+            const selectedBorderColour = AppState.borderColour === 'auto'
+                ? (AppState.backgroundColor & 0x0F)
+                : (parseInt(AppState.borderColour, 10) & 0x0F);
+            const selectedScrollBgColour = AppState.scrollBgColour === 'auto'
+                ? (AppState.backgroundColor & 0x0F)
+                : (parseInt(AppState.scrollBgColour, 10) & 0x0F);
+            ldaImm(selectedBorderColour); staAbs(0xD020);
+            ldaImm(AppState.koalaMode ? (AppState.backgroundColor & 0x0F) : 0x00); staAbs(0xD021);
+
+            if (AppState.koalaMode && exportColorRam) {
+                ldxImm(0x00);
+                const loop = codeBase + mc.length;
+                b(0xBD); w(koalaColorSrc); b(0x9D); w(0xD800);
+                b(0xBD); w(koalaColorSrc + 0x100); b(0x9D); w(0xD900);
+                b(0xBD); w(koalaColorSrc + 0x200); b(0x9D); w(0xDA00);
+                b(0xBD); w(koalaColorSrc + 0x300); b(0x9D); w(0xDB00);
+                b(0xE8);
+                b(0xD0); b((loop - (codeBase + mc.length + 1)) & 0xFF);
+            }
+
+            if (sid) {
+                const initLo = sid.initAddr & 0xFF, initHi = sid.initAddr >> 8;
+                ldaImm(0x00); b(0xAA); b(0xA8); jsr((initHi << 8) | initLo);
+                ldaImm(0x37); staAbs(0x0001); // some SID init routines leave KERNAL hidden; restore safe IRQ mapping
+            }
+
+            // Build a self-contained loader that runs from the cassette buffer at $033C.
+            // The next PRG may overwrite everything from $0801 upward, so all code that
+            // must execute after LOAD returns has to live below that address.
+            let safeLoaderBytes = null;
+            let safeLoaderSourcePatch = 0;
+            let loadingScreenAddr = 0;
+            const safeLoaderAddr = 0x033C;
+            if (autoloadEnabled) {
+                let ld = [];
+                function lb(v){ ld.push(v & 0xFF); }
+                function lw(v){ lb(v); lb(v >> 8); }
+                function lLdaImm(v){ lb(0xA9); lb(v); }
+                function lLdxImm(v){ lb(0xA2); lb(v); }
+                function lStaAbs(a){ lb(0x8D); lw(a); }
+                function lStxAbs(a){ lb(0x8E); lw(a); }
+                function lJsr(a){ lb(0x20); lw(a); }
+                function lJmp(a){ lb(0x4C); lw(a); }
+
+                lb(0x78);                         // SEI
+                lLdxImm(0xFF); lb(0x9A);          // reset stack
+                lLdaImm(0x37); lStaAbs(0x0001);
+                lLdaImm(0x00); lStaAbs(0xD01A);  // raster IRQ off
+                lLdaImm(0x01); lStaAbs(0xD019);  // acknowledge raster IRQ
+                lLdaImm(0x7F); lStaAbs(0xDC0D);  // CIA IRQ sources off
+                lb(0xAD); lw(0xDC0D);            // acknowledge CIA IRQ
+                lLdaImm(0x1B); lStaAbs(0xD011);  // text screen remains visible during LOAD
+                lLdaImm(0x00); lStaAbs(0xD020); lStaAbs(0xD021);
+                lLdaImm(0x00); lStaAbs(0xD418);  // silence SID
+                lLdaImm(0xFF); lStaAbs(0xDC00);
+
+                const setnamLenPos = ld.length + 1; lLdaImm(0);
+                const setnamLoPos = ld.length + 1; lLdxImm(0);
+                lb(0xA0); const setnamHiPos = ld.length; lb(0);
+                lJsr(0xFFBD);                    // SETNAM
+                lLdaImm(0x01); lLdxImm(0x08); lb(0xA0); lb(0x01); lJsr(0xFFBA); // SETLFS
+                lLdaImm(0x00); lLdxImm(0x00); lb(0xA0); lb(0x00); lJsr(0xFFD5); // LOAD
+                const errorBranchPos = ld.length + 1; lb(0xB0); lb(0x00);        // BCS error
+                lStxAbs(0x002D);                 // BASIC VARTAB end pointer
+                lb(0x8C); lw(0x002E);            // STY $002E
+                lJsr(0xA659);                    // reset BASIC execution pointer + CLR
+                lJmp(0xA7AE);                    // execute first BASIC statement
+
+                const errorOffset = ld.length;
+                ld[errorBranchPos] = (errorOffset - (errorBranchPos + 1)) & 0xFF;
+                lLdaImm(0x02); lStaAbs(0xD020);  // red border on LOAD error
+                const haltAddr = safeLoaderAddr + ld.length;
+                lJmp(haltAddr);
+
+                const filenameOffset = ld.length;
+                for (const c of autoloadNameBytes) lb(c);
+                const filenameAddr = safeLoaderAddr + filenameOffset;
+                ld[setnamLenPos] = autoloadNameBytes.length;
+                ld[setnamLoPos] = filenameAddr & 0xFF;
+                ld[setnamHiPos] = filenameAddr >> 8;
+                if (ld.length > 0xC0) throw new Error('The safe loader is too large for the cassette buffer.');
+                safeLoaderBytes = new Uint8Array(ld);
+
+                // Copy the loader from its temporary location in the PRG to $033C.
+                // The source address is patched after the rest of the machine code is built.
+                ldxImm(safeLoaderBytes.length - 1);
+                const copyLoaderLoop = codeBase + mc.length;
+                b(0xBD); safeLoaderSourcePatch = mc.length; w(0); // LDA source,X
+                b(0x9D); w(safeLoaderAddr);                      // STA $033C,X
+                b(0xCA);                                        // DEX
+                b(0x10); b((copyLoaderLoop - (codeBase + mc.length + 1)) & 0xFF); // BPL
+
+                // Draw the loading message from ordinary program memory BEFORE entering
+                // the cassette-buffer loader. Jump over this subroutine during normal startup;
+                // it must only run after SPACE has actually been detected.
+                const skipLoadingScreenPatch = mc.length + 1;
+                jmp(0);
+                loadingScreenAddr = codeBase + mc.length;
+                b(0x78);                              // SEI
+                ldaImm(0x37); staAbs(0x0001);         // KERNAL/I/O visible
+                ldaAbs(0xDD00); oraImm(0x03); staAbs(0xDD00); // VIC bank 0
+                ldaImm(0x14); staAbs(0xD018);         // screen $0400, charset $1000
+                ldaImm(0x1B); staAbs(0xD011);         // text mode, screen on
+                ldaImm(0x08); staAbs(0xD016);         // 40 columns
+                ldaImm(0x00); staAbs(0xD020); staAbs(0xD021); // black border/background
+                ldaImm(0x00); staAbs(0xD015);         // sprites off
+                ldaImm(0x00); staAbs(0xD418);         // silence SID
+
+                ldxImm(0x00);
+                const clearLoadingLoop = codeBase + mc.length;
+                ldaImm(0x20);                        // screen-code space
+                b(0x9D); w(0x0400); b(0x9D); w(0x0500);
+                b(0x9D); w(0x0600); b(0x9D); w(0x0700);
+                ldaImm(0x00);                        // black colour RAM
+                b(0x9D); w(0xD800); b(0x9D); w(0xD900);
+                b(0x9D); w(0xDA00); b(0x9D); w(0xDB00);
+                b(0xE8);                             // INX
+                b(0xD0); b((clearLoadingLoop - (codeBase + mc.length + 1)) & 0xFF);
+
+                ldxImm(9);
+                const loadingTextLoop = codeBase + mc.length;
+                b(0xBD); const loadingTextPatch = mc.length; w(0); // LDA text,X
+                b(0x9D); w(0x05EF);                  // row 12, column 15
+                ldaImm(0x07);                        // yellow
+                b(0x9D); w(0xD9EF);
+                b(0xCA);                             // DEX
+                b(0x10); b((loadingTextLoop - (codeBase + mc.length + 1)) & 0xFF);
+                b(0x60);                             // RTS
+                const loadingTextAddr = codeBase + mc.length;
+                for (const c of [12,15,1,4,9,14,7,46,46,46]) b(c); // LOADING...
+                mc[loadingTextPatch] = loadingTextAddr & 0xFF;
+                mc[loadingTextPatch + 1] = loadingTextAddr >> 8;
+                const afterLoadingScreenAddr = codeBase + mc.length;
+                mc[skipLoadingScreenPatch] = afterLoadingScreenAddr & 0xFF;
+                mc[skipLoadingScreenPatch + 1] = afterLoadingScreenAddr >> 8;
+            }
+
+            if (scrollEnabled) {
+                ldaImm(7); staAbs(scrollVar);
+                ldaImm(scrollDataAddr & 0xFF); staAbs(scrollPtr);
+                ldaImm(scrollDataAddr >> 8); staAbs(scrollPtr + 1);
+
+                // Raster IRQ setup. This replaces the simpler SID-only IRQ path so the bitmap/text split is stable.
+                ldaImm(0x7F); staAbs(0xDC0D);
+                ldaAbs(0xDC0D);
+                ldaImm(0x01); staAbs(0xD01A);
+                ldaImm(0x00); staAbs(0xD012);
+                ldaAbs(0xD011); andImm(0x7F); staAbs(0xD011);
+                const topLoPatch = mc.length + 1; ldaImm(0); staAbs(0x0314);
+                const topHiPatch = mc.length + 1; ldaImm(0); staAbs(0x0315);
+                b(0x58); // CLI
+                const mainLoop = codeBase + mc.length;
+                jmp(mainLoop);
+
+                const topIrqAddr = codeBase + mc.length;
+                mc[topLoPatch] = topIrqAddr & 0xFF;
+                // KERNAL IRQ vector $0314 already saves A/X/Y. Do not push here; return through $EA31.
+                ldaImm(0x3B); staAbs(0xD011);
+                ldaImm(0x18); staAbs(0xD016);
+                ldaImm(d018BitmapVal); staAbs(0xD018);
+                ldaImm(AppState.backgroundColor & 0x0F); staAbs(0xD021);
+                ldaImm(selectedBorderColour); staAbs(0xD020);
+
+                if (autoloadEnabled) {
+                    // Scan SPACE directly in the CIA keyboard matrix: row 7, column 4.
+                    ldaImm(0x7F); staAbs(0xDC00);
+                    ldaAbs(0xDC01); andImm(0x10);
+                    b(0xD0); b(6);              // BNE: SPACE not pressed, skip JSR + JMP
+                    jsr(loadingScreenAddr);
+                    jmp(safeLoaderAddr);
+                    ldaImm(0xFF); staAbs(0xDC00); // restore keyboard matrix output
+                }
+
+                if (sid && sid.playAddr !== 0) { jsr(sid.playAddr); ldaImm(0x37); staAbs(0x0001); }
+
+                // Smooth scroll update happens in the top IRQ, far away from the raster split.
+                // The bottom IRQ only changes VIC mode/registers, so its timing stays stable.
+                ldaAbs(scrollVar);
+                b(0xF0); b(6);              // BEQ wrap
+                b(0xCE); w(scrollVar);      // DEC scrollVar
+                const topAfterUpdateJmpPatch = mc.length + 1; jmp(0);
+                ldaImm(7); staAbs(scrollVar);
+                b(0xEE); w(scrollPtr);      // INC low
+                b(0xD0); b(3);              // BNE +3
+                b(0xEE); w(scrollPtr + 1);  // INC high
+                ldaAbs(scrollPtr + 1); b(0xC9); b((scrollDataAddr + scrollWrapLength) >> 8); b(0xD0); b(17);
+                ldaAbs(scrollPtr); b(0xC9); b((scrollDataAddr + scrollWrapLength) & 0xFF); b(0xD0); b(10);
+                ldaImm(scrollDataAddr & 0xFF); staAbs(scrollPtr);
+                ldaImm(scrollDataAddr >> 8); staAbs(scrollPtr + 1);
+                ldaAbs(scrollPtr); staAbs(0x00FB);
+                ldaAbs(scrollPtr + 1); staAbs(0x00FC);
+                ldxImm(0x00);
+                const topCopyLoop = codeBase + mc.length;
+                b(0xA0); b(0x00);           // LDY #0
+                b(0xB1); b(0xFB);           // LDA ($FB),Y
+                b(0x9D); w(screenBottomRow); // STA row,X
+                b(0xE8);                    // INX
+                b(0xE6); b(0xFB);           // INC $FB
+                b(0xD0); b(2);              // BNE +2
+                b(0xE6); b(0xFC);           // INC $FC
+                b(0xE0); b(40);             // CPX #40
+                b(0xD0); b((topCopyLoop - (codeBase + mc.length + 1)) & 0xFF);
+                const topAfterUpdateAddr = codeBase + mc.length;
+                patchWord(topAfterUpdateJmpPatch, topAfterUpdateAddr);
+
+                const bottomLoPatch = mc.length + 1; ldaImm(0); staAbs(0x0314);
+                const bottomHiPatch = mc.length + 1; ldaImm(0); staAbs(0x0315);
+                ldaImm(242); staAbs(0xD012);
+                ldaImm(0x01); staAbs(0xD019);
+                jmp(0xEA31); // Return via KERNAL IRQ exit (restores A/X/Y and RTI)
+
+                const bottomIrqAddr = codeBase + mc.length;
+                mc[bottomLoPatch] = bottomIrqAddr & 0xFF;
+                mc[bottomHiPatch] = bottomIrqAddr >> 8;
+                mc[topHiPatch] = topIrqAddr >> 8;
+                // KERNAL IRQ vector $0314 already saves A/X/Y. Do not push here; return through $EA31.
+                ldaImm(0x1B); staAbs(0xD011);
+                ldaImm(d018TextVal); staAbs(0xD018);
+                ldaImm(selectedScrollBgColour); staAbs(0xD021);
+                if (AppState.matchBorderToScroll) { ldaImm(selectedScrollBgColour); staAbs(0xD020); }
+                ldaAbs(scrollVar); oraImm(0x08); staAbs(0xD016);
+
+                // Keep the bottom IRQ deterministic: only switch to text mode and schedule top IRQ.
+                const top2LoPatch = mc.length + 1; ldaImm(0); staAbs(0x0314);
+                const top2HiPatch = mc.length + 1; ldaImm(0); staAbs(0x0315);
+                mc[top2LoPatch] = topIrqAddr & 0xFF;
+                mc[top2HiPatch] = topIrqAddr >> 8;
+                ldaImm(0); staAbs(0xD012);
+                ldaImm(0x01); staAbs(0xD019);
+                jmp(0xEA31); // Return via KERNAL IRQ exit (restores A/X/Y and RTI)
+
+            } else {
+                // Original simple flow when no scroll is requested.
+                let irqVectorLoIdx = 0, irqVectorHiIdx = 0;
+                if (sid && sid.playAddr !== 0) {
+                    irqVectorLoIdx = mc.length + 1; ldaImm(0); staAbs(0x0314);
+                    irqVectorHiIdx = mc.length + 1; ldaImm(0); staAbs(0x0315);
+                    if (sid.useCia) {
+                        ldaImm(0x7F); staAbs(0xDC0D);
+                        ldaImm(0x00); staAbs(0xD01A);
+                        let timerLatch = AppState.system === 'ntsc' ? 17095 : 17045;
+                        ldaImm(timerLatch & 0xFF); staAbs(0xDC04);
+                        ldaImm(timerLatch >> 8); staAbs(0xDC05);
+                        ldaImm(0x81); staAbs(0xDC0D);
+                        ldaImm(0x11); staAbs(0xDC0E);
+                    } else {
+                        ldaImm(0x7F); staAbs(0xDC0D);
+                        ldaImm(0x01); staAbs(0xD01A);
+                        ldaImm(0x00); staAbs(0xD012);
+                        ldaAbs(0xD011); andImm(0x7F); staAbs(0xD011);
+                    }
+                }
+                b(0x58);
+                let loopAddr = codeBase + mc.length;
+                if (autoloadEnabled) {
+                    // Without a scroller there is no raster routine to scan the keyboard,
+                    // so poll SPACE safely in the main loop instead.
+                    ldaImm(0x7F); staAbs(0xDC00);
+                    ldaAbs(0xDC01); andImm(0x10);
+                    b(0xD0); b(6);              // BNE: SPACE not pressed, skip JSR + JMP
+                    jsr(loadingScreenAddr);
+                    jmp(safeLoaderAddr);
+                    ldaImm(0xFF); staAbs(0xDC00);
+                }
+                jmp(loopAddr);
+                if (sid && sid.playAddr !== 0) {
+                    let irqAddr = codeBase + mc.length;
+                    mc[irqVectorLoIdx] = irqAddr & 0xFF; mc[irqVectorHiIdx] = irqAddr >> 8;
+                    jsr(sid.playAddr);
+                    ldaImm(0x37); staAbs(0x0001);
+                    if (sid.useCia) ldaAbs(0xDC0D);
+                    else { ldaImm(0x01); staAbs(0xD019); }
+                    jmp(0xEA31);
+                }
+            }
+
+            if (autoloadEnabled && safeLoaderBytes) {
+                const safeLoaderSourceAddr = codeBase + mc.length;
+                mc[safeLoaderSourcePatch] = safeLoaderSourceAddr & 0xFF;
+                mc[safeLoaderSourcePatch + 1] = safeLoaderSourceAddr >> 8;
+                for (const v of safeLoaderBytes) mc.push(v);
+            }
+
+            writeMem(0x0810, mc);
+            writeMem(setup.screen, exportScreenRam);
+            writeMem(setup.bitmap, AppState.bitmapRam);
+            if (AppState.koalaMode && exportColorRam) {
+                const paddedColorRam = new Uint8Array(1024);
+                paddedColorRam.set(exportColorRam);
+                writeMem(koalaColorSrc, paddedColorRam);
+            }
+            if (scrollEnabled) writeMem(scrollDataAddr, scrollCodes);
+            if (sid) writeMem(sid.loadAddr, sid.data);
+
+            let startAddr = 65535, endAddr = 0;
+            for(let i=0; i<65536; i++) if (usedMemory[i]) { if (i < startAddr) startAddr = i; if (i > endAddr) endAddr = i; }
+            if (startAddr > endAddr) { showMessage("Fatal Error: Memory compilation failed.", "error"); return; }
+            if (startAddr < 0x0801) { showMessage("Cannot export: data was placed below $0801, which would prevent RUN from starting the PRG.", "error"); return; }
+
+            let prgSize = endAddr - startAddr + 1;
+            let prgData = new Uint8Array(prgSize + 2);
+            prgData[0] = startAddr & 0xFF; prgData[1] = startAddr >> 8;
+            for(let i=0; i<prgSize; i++) prgData[2 + i] = mem[startAddr + i];
+
+            const blob = new Blob([prgData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const userFilename = ui.filenameInput.value.trim() || 'blokify2';
+            a.href = url; a.download = userFilename + '.prg';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage("Successfully exported " + a.download + (scrollEnabled ? " with scrolltext!" : "!") , "success");
+        }
+
+        if (ui.autoloadEnabledInput) {
+            const updateAutoloadUi = () => {
+                const enabled = ui.autoloadEnabledInput.checked;
+                ui.autoloadFilenameInput.disabled = !enabled;
+                if (ui.autoloadOptions) ui.autoloadOptions.classList.toggle('opacity-50', !enabled);
+            };
+            ui.autoloadEnabledInput.addEventListener('change', updateAutoloadUi);
+            updateAutoloadUi();
+        }
+
+        ui.btnExport.addEventListener('click', exportPRG);
+        renderC64();
+    </script>
+</body>
+</html>

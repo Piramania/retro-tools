@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Piramania C64 Media Linker - README</title>
+  <style>
+    body { max-width: 900px; margin: 40px auto; padding: 0 20px 60px; font-family: Arial, Helvetica, sans-serif; line-height: 1.6; color: #222; background: #fff; }
+    h1, h2 { line-height: 1.25; }
+    h1 { margin-bottom: .25em; }
+    h2 { margin-top: 1.8em; border-bottom: 1px solid #ddd; padding-bottom: .25em; }
+    code, pre { font-family: Consolas, Monaco, monospace; background: #f4f4f4; }
+    code { padding: .1em .3em; }
+    pre { padding: 12px; overflow-x: auto; border: 1px solid #ddd; }
+    blockquote { margin: 1em 0; padding: .5em 1em; border-left: 4px solid #888; background: #f7f7f7; }
+    ul { padding-left: 1.4em; }
+    .intro { font-size: 1.05em; }
+  </style>
+</head>
+<body>
+  <h1>Piramania C64 Media Linker</h1>
+  <p class="intro"><strong>Piramania C64 Media Linker</strong> is a browser-based tool that creates self-contained Commodore 64 intro screens from <strong>Koala Painter images</strong> and optional <strong>SID music</strong>.</p>
+  <p>The generated program can either act as a standalone presentation or as a loader that launches another program when the user presses <strong>SPACE</strong>.</p>
+  <p>Typical uses include:</p>
+  <ul>
+    <li>Crack intros</li>
+    <li>Game splash screens</li>
+    <li>Disk menu intros</li>
+    <li>Slideshows</li>
+    <li>Demo productions</li>
+    <li>Presentations that load another PRG</li>
+    <li>Multi-part productions</li>
+  </ul>
+  <p>No installation is required. Simply open the HTML file in a modern web browser.</p>
+
+  <h2>Features</h2>
+  <ul>
+    <li>Native Koala Painter (.KLA/.KOA) support</li>
+    <li>Optional SID music</li>
+    <li>Optional hardware scrolltext</li>
+    <li>Optional "Press SPACE to continue" loader</li>
+    <li>Automatic VIC-II memory bank selection</li>
+    <li>Automatic SID collision detection</li>
+    <li>Configurable border colour</li>
+    <li>Configurable scroll background colour</li>
+    <li>Configurable scroll text colour</li>
+    <li>Real-time C64 preview</li>
+    <li>Generates a ready-to-run PRG</li>
+  </ul>
+
+  <h2>Requirements</h2>
+  <p><strong>Input image:</strong></p>
+  <ul><li>Koala Painter (.KLA or .KOA)</li></ul>
+  <p><strong>Optional:</strong></p>
+  <ul>
+    <li>PSID/RSID music file</li>
+    <li>Name of another PRG to be loaded from device 8</li>
+  </ul>
+
+  <h2>How it works</h2>
+  <h3>1. Load a Koala image</h3>
+  <p>Select a Koala Painter image.</p>
+  <p>The image is displayed exactly as it will appear on a Commodore 64.</p>
+
+  <h3>2. Optional: Load a SID file</h3>
+  <p>Load a SID music file.</p>
+  <p>The Media Linker automatically:</p>
+  <ul>
+    <li>parses the SID header</li>
+    <li>detects load, init and play addresses</li>
+    <li>selects a suitable VIC-II memory bank</li>
+    <li>warns if memory conflicts are detected</li>
+  </ul>
+
+  <h3>3. Configure appearance</h3>
+  <p>You can customise:</p>
+  <ul>
+    <li>Border colour</li>
+    <li>Scroll background colour</li>
+    <li>Scroll text colour</li>
+  </ul>
+  <p>Border and scroll background may optionally be linked together.</p>
+
+  <h3>4. Add scrolltext (optional)</h3>
+  <p>If the scroll text field is left empty, no scroller is generated.</p>
+  <p>If text is entered:</p>
+  <ul>
+    <li>the scroller automatically starts off-screen</li>
+    <li>smooth hardware scrolling is enabled</li>
+    <li>the last 8 pixel rows of the image become the scroll area</li>
+  </ul>
+
+  <h3>5. Load another program (optional)</h3>
+  <p>Enable:</p>
+  <blockquote><strong>Load another file with SPACE</strong></blockquote>
+  <p>Then enter the filename without <code>.PRG</code>.</p>
+  <p>Example:</p>
+  <pre><code>GAME</code></pre>
+  <p>When SPACE is pressed, the generated intro loads:</p>
+  <pre><code>GAME</code></pre>
+  <p>from device 8.</p>
+  <p>This makes it easy to create:</p>
+  <ul>
+    <li>game intros</li>
+    <li>slideshow presentations</li>
+    <li>demo part linkers</li>
+    <li>menu systems</li>
+  </ul>
+
+  <h2>Slideshows</h2>
+  <p>Creating a slideshow is simple.</p>
+  <p>Create one intro PRG for each picture.</p>
+  <p>Example:</p>
+  <pre><code>PART1
+PART2
+PART3
+PART4</code></pre>
+  <p>Configure:</p>
+  <pre><code>PART1 loads PART2
+PART2 loads PART3
+PART3 loads PART4</code></pre>
+  <p>The result is a slideshow where each screen advances with a press of the SPACE bar.</p>
+
+  <h2>Memory management</h2>
+  <p>The Media Linker automatically places:</p>
+  <ul>
+    <li>bitmap</li>
+    <li>screen RAM</li>
+    <li>colour RAM</li>
+    <li>SID data</li>
+    <li>scroll text</li>
+  </ul>
+  <p>into suitable memory locations. It attempts to avoid collisions between video memory and SID data automatically.</p>
+
+  <h2>Notes</h2>
+  <ul>
+    <li>The scroll area uses the bottom 8 pixel rows of the image.</li>
+    <li>Koala images remain completely unchanged except for the scroll area when enabled.</li>
+    <li>SID playback supports both raster and CIA timer playback.</li>
+    <li>Programs are generated as standard C64 PRG files.</li>
+  </ul>
+
+  <h2>Credits</h2>
+  <p>Created by <strong>Piramania</strong>.</p>
+  <p>Developed with the assistance of ChatGPT.</p>
+  <p>Special thanks to the Commodore 64 community for decades of documentation, reverse engineering and inspiration.</p>
+</body>
+</html>

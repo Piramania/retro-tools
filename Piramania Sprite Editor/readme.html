@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C64 Sprite Editor Deluxe — User Guide</title>
+<style>
+@font-face{font-family:'C64';src:url('ressources/C64_Pro_Mono-STYLE.woff2') format('woff2');font-display:swap}
+:root{--c64-blue:#40318d;--c64-dark:#21155f;--c64-light:#7869c4;--c64-pale:#b8b1e8;--c64-white:#f2f0ff;--c64-yellow:#d6d66f;--c64-red:#b84b4b;--terminal:#8be28b;--ink:#171330;--paper:#dedaf5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;padding:24px;color:var(--c64-white);background:linear-gradient(rgba(255,255,255,.025) 50%,rgba(0,0,0,.025) 50%) 0 0/100% 4px,var(--c64-blue);font-family:Arial,sans-serif;line-height:1.62}
+a{color:var(--c64-dark);font-weight:700;text-decoration-thickness:2px;text-underline-offset:2px}
+a:hover{color:#000}
+.wrap{max-width:1180px;margin:auto}
+.hero{margin-bottom:18px;padding:24px;border:4px solid var(--c64-pale);background:var(--c64-dark);box-shadow:8px 8px 0 rgba(0,0,0,.3);text-align:center;font-family:'C64',ui-monospace,monospace}
+.badge{display:inline-block;margin-bottom:10px;padding:4px 8px;color:var(--c64-yellow);border:2px solid var(--c64-yellow);text-transform:uppercase}
+h1{margin:0 0 10px;color:var(--c64-yellow);font-size:clamp(1.55rem,4vw,2.55rem);line-height:1.15;letter-spacing:.06em;text-transform:uppercase;text-shadow:3px 3px 0 #000}
+.subtitle{max-width:800px;margin:0 auto;color:var(--c64-pale);line-height:1.55}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}
+.panel{padding:22px;color:var(--ink);background:var(--c64-pale);border:4px solid var(--c64-white);box-shadow:8px 8px 0 rgba(0,0,0,.28)}
+.sidebar{position:sticky;top:18px;padding:18px}
+.sidebar h2{font-size:1rem}
+.sidebar nav{display:grid;gap:6px}
+.sidebar a{display:block;padding:7px 9px;border-left:5px solid var(--c64-dark);background:rgba(255,255,255,.52);text-decoration:none;font-size:.91rem}
+.sidebar a:hover{background:var(--c64-white);border-left-color:var(--c64-yellow)}
+.sidebar .mini{margin-top:14px;padding:11px;background:var(--c64-dark);color:var(--terminal);font:12px/1.5 'C64',ui-monospace,monospace}
+main.panel{padding:28px}
+section{scroll-margin-top:20px;margin-bottom:44px}
+section:last-child{margin-bottom:0}
+h2,h3,h4{color:var(--c64-dark);text-transform:uppercase;letter-spacing:.04em;font-family:'C64',ui-monospace,monospace;line-height:1.35}
+h2{margin:0 0 16px;padding-bottom:9px;border-bottom:4px solid var(--c64-dark);font-size:1.25rem}
+h3{margin:27px 0 11px;font-size:1rem}
+h4{margin:20px 0 7px;font-size:.88rem}
+p{margin:0 0 14px}
+ul,ol{margin:0 0 16px;padding-left:25px}
+li{margin-bottom:6px}
+strong{color:var(--c64-dark)}
+code,kbd{padding:2px 5px;background:rgba(33,21,95,.13);color:var(--c64-dark);border:1px solid rgba(33,21,95,.25);font:700 .9em ui-monospace,Consolas,monospace}
+kbd{box-shadow:1px 2px 0 rgba(0,0,0,.25)}
+.note,.tip,.warning{margin:17px 0;padding:13px 15px;background:rgba(255,255,255,.62);border-left:8px solid var(--c64-yellow)}
+.warning{border-left-color:var(--c64-red);background:#f7dfdf}
+.tip::before,.note::before,.warning::before{display:block;margin-bottom:4px;color:var(--c64-dark);font:700 12px/1.2 'C64',ui-monospace,monospace;text-transform:uppercase}
+.tip::before{content:'Beginner tip'}
+.note::before{content:'Note'}
+.warning::before{content:'Important'}
+.steps{counter-reset:step;display:grid;gap:12px;margin:16px 0}
+.step{counter-increment:step;position:relative;padding:14px 14px 14px 58px;background:rgba(255,255,255,.58);border:3px solid var(--c64-dark)}
+.step::before{content:counter(step);position:absolute;left:13px;top:13px;width:31px;height:31px;display:grid;place-items:center;background:var(--c64-dark);color:var(--c64-yellow);font:15px/1 'C64',ui-monospace,monospace}
+.feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}
+.feature{padding:14px;background:rgba(255,255,255,.58);border:3px solid var(--c64-dark)}
+.feature h3,.feature h4{margin-top:0}
+.table-wrap{overflow-x:auto;margin:15px 0}
+table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.58);font-size:.94rem}
+th,td{padding:10px 11px;border:2px solid var(--c64-dark);vertical-align:top;text-align:left}
+th{background:var(--c64-dark);color:var(--c64-yellow);font-family:'C64',ui-monospace,monospace;text-transform:uppercase;font-size:.75rem;letter-spacing:.03em}
+.terminal{margin:14px 0;padding:15px;color:var(--terminal);background:#101010;border:4px solid var(--c64-dark);box-shadow:inset 0 0 0 2px #000;font:13px/1.55 'C64',ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-x:auto}
+.color-row{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.swatch{width:31px;height:31px;border:3px solid var(--c64-dark);box-shadow:2px 2px 0 rgba(0,0,0,.22)}
+.back-top{display:inline-block;margin-top:8px;padding:6px 9px;background:var(--c64-dark);color:var(--c64-yellow);text-decoration:none;font:11px/1.2 'C64',ui-monospace,monospace;text-transform:uppercase}
+.footer{margin-top:18px;padding:17px;border:4px solid var(--c64-pale);background:var(--c64-dark);color:var(--c64-pale);text-align:center;font:12px/1.55 'C64',ui-monospace,monospace;box-shadow:8px 8px 0 rgba(0,0,0,.3)}
+.print-button{width:100%;margin-top:12px;padding:10px;border:3px solid var(--c64-dark);background:var(--c64-white);color:var(--c64-dark);font-weight:800;text-transform:uppercase;cursor:pointer;box-shadow:3px 3px 0 rgba(0,0,0,.22)}
+.print-button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(0,0,0,.28)}
+@media(max-width:900px){body{padding:14px}.layout{grid-template-columns:1fr}.sidebar{position:static}.sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}.hero,.panel,.footer{box-shadow:5px 5px 0 rgba(0,0,0,.28)}.feature-grid{grid-template-columns:1fr}}
+@media(max-width:560px){main.panel{padding:18px}.sidebar nav{grid-template-columns:1fr}.step{padding-left:52px}th,td{padding:8px;font-size:.88rem}}
+@media print{body{padding:0;background:#fff;color:#000}.wrap{max-width:none}.hero,.footer{box-shadow:none}.layout{display:block}.sidebar{display:none}.panel{border:0;box-shadow:none;background:#fff;padding:0}main.panel{padding:0}.hero{background:#fff;border:0;color:#000}.hero h1,.hero .badge{color:#000;border-color:#000;text-shadow:none}.hero .subtitle{color:#333}section{break-inside:avoid-page}.back-top{display:none}.terminal{border:2px solid #000}.feature,.step,table{break-inside:avoid}}
+</style>
+</head>
+<body id="top">
+<div class="wrap">
+<header class="hero">
+<div class="badge">Piramania Presents</div>
+<h1>C64 Sprite Editor Deluxe</h1>
+<p class="subtitle">User Guide — a beginner-friendly introduction to drawing, animating, importing and exporting Commodore 64 and MEGA65 sprites.</p>
+</header>
+
+<div class="layout">
+<aside class="panel sidebar">
+<h2>Contents</h2>
+<nav>
+<a href="#introduction">1. Introduction</a>
+<a href="#quick-start">2. Quick Start</a>
+<a href="#sprite-basics">3. Sprite Basics</a>
+<a href="#editor">4. Drawing Editor</a>
+<a href="#tools">5. Editing Tools</a>
+<a href="#animation">6. Animation</a>
+<a href="#binary">7. Binary Files</a>
+<a href="#export">8. Export Wizard</a>
+<a href="#import">9. Data Import</a>
+<a href="#byte-map">10. Row / Byte Map</a>
+<a href="#shortcuts">11. Shortcuts</a>
+<a href="#workflows">12. Example Workflows</a>
+<a href="#troubleshooting">13. Troubleshooting</a>
+<a href="#reference">14. Quick Reference</a>
+</nav>
+<div class="mini">GUIDE FOR<br>C64 SPRITE EDITOR DELUXE<br>VERSION 0.9 / 1.0 FEATURE SET</div>
+<button class="print-button" onclick="window.print()">Print guide</button>
+</aside>
+
+<main class="panel">
+<section id="introduction">
+<h2>1. Introduction</h2>
+<p><strong>C64 Sprite Editor Deluxe</strong> is a browser-based editor for creating standard Commodore 64 hardware sprites. It supports both single-color and multicolor sprites, multiple animation frames, previews, binary sprite files, source-code export and several ready-to-run MEGA65 BASIC 65 formats.</p>
+<p>The editor runs locally in your web browser. You do not need to install an application or create an account. Open the HTML file in a modern browser and begin drawing.</p>
+<div class="note">The editor creates classic 24×21-pixel C64 sprites. MEGA65 export uses the same standard sprite data, loaded and displayed through BASIC 65.</div>
+<h3>What you can make</h3>
+<div class="feature-grid">
+<div class="feature"><h4>Single sprites</h4><p>Characters, enemies, objects, icons and other 24×21-pixel graphics.</p></div>
+<div class="feature"><h4>Multicolor sprites</h4><p>Sprites using a background plus three visible colors, with double-width pixels.</p></div>
+<div class="feature"><h4>Animations</h4><p>Walk cycles, blinking lights, spinning objects and other frame-by-frame movement.</p></div>
+<div class="feature"><h4>Program assets</h4><p>Binary files, BASIC DATA, assembler source and C arrays ready for use in your own projects.</p></div>
+</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="quick-start">
+<h2>2. Quick Start: Make Your First Sprite</h2>
+<p>This short exercise introduces the most important controls.</p>
+<div class="steps">
+<div class="step"><strong>Choose a sprite mode.</strong><br>Select <em>Single color (24×21)</em> from the Sprite mode menu.</div>
+<div class="step"><strong>Choose the colors.</strong><br>Use the Background color and Sprite color palettes. The drawing grid immediately shows the selected background color.</div>
+<div class="step"><strong>Select Sprite as the drawing color.</strong><br>Click the Sprite color square to the right of the grid. Its yellow outline shows that it is active.</div>
+<div class="step"><strong>Draw.</strong><br>Hold the left mouse button and move across the grid. The editor joins the cells between mouse positions, allowing continuous lines.</div>
+<div class="step"><strong>Erase mistakes.</strong><br>Select Background as the drawing color, right-click a cell, or hold <kbd>Alt</kbd> while drawing.</div>
+<div class="step"><strong>Check the previews.</strong><br>The enlarged preview shows the sprite clearly. The Native 1:1 preview shows its actual 24×21-pixel size.</div>
+<div class="step"><strong>Save it.</strong><br>Click <em>Save Current .SPR</em> to download one standard 64-byte sprite block.</div>
+</div>
+<div class="tip">Start with a simple shape such as a ball, arrow, face or small spaceship. C64 sprites are tiny, so strong silhouettes usually work better than fine detail.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="sprite-basics">
+<h2>3. Understanding C64 Sprites</h2>
+<h3>Size and memory</h3>
+<p>A standard C64 hardware sprite is <strong>24 pixels wide and 21 pixels high</strong>. Its graphic data uses 63 bytes: three bytes for each of the 21 rows. Sprite files and memory blocks commonly add one unused padding byte, making a total of <strong>64 bytes</strong>.</p>
+<div class="terminal">21 rows × 3 bytes = 63 graphic bytes
+63 graphic bytes + 1 padding byte = 64 bytes</div>
+<h3>Single-color mode</h3>
+<p>In single-color mode, every cell in the 24×21 grid represents one hardware pixel. Each pixel is either transparent/background or the selected sprite color.</p>
+<h3>Multicolor mode</h3>
+<p>In multicolor mode, the sprite is edited as a <strong>12×21 grid</strong>. Each editable cell becomes two horizontal C64 pixels, which is why multicolor pixels appear twice as wide.</p>
+<p>Each multicolor cell can contain one of four values:</p>
+<div class="table-wrap"><table><thead><tr><th>Value</th><th>Meaning</th><th>Shared?</th></tr></thead><tbody>
+<tr><td>Background</td><td>Transparent sprite area, shown using the selected screen background color.</td><td>Not stored as a visible sprite color.</td></tr>
+<tr><td>Multicolor 1</td><td>First shared multicolor.</td><td>Normally shared by several sprites on the machine.</td></tr>
+<tr><td>Sprite color</td><td>The sprite's individual color.</td><td>Unique to that hardware sprite.</td></tr>
+<tr><td>Multicolor 2</td><td>Second shared multicolor.</td><td>Normally shared by several sprites on the machine.</td></tr>
+</tbody></table></div>
+<div class="warning">Changing between single-color and multicolor modes changes how the existing bit pattern is interpreted. Choose the intended mode before doing detailed work.</div>
+<h3>The C64 palette</h3>
+<p>The palettes provide the 16 standard C64 color choices. The exact appearance can vary slightly between real machines, displays, emulators and palette settings.</p>
+<div class="color-row" aria-label="C64 color palette">
+<span class="swatch" style="background:#000"></span><span class="swatch" style="background:#fff"></span><span class="swatch" style="background:#813338"></span><span class="swatch" style="background:#75cec8"></span><span class="swatch" style="background:#8e3c97"></span><span class="swatch" style="background:#56ac4d"></span><span class="swatch" style="background:#2e2c9b"></span><span class="swatch" style="background:#edf171"></span><span class="swatch" style="background:#8e5029"></span><span class="swatch" style="background:#553800"></span><span class="swatch" style="background:#c46c71"></span><span class="swatch" style="background:#4a4a4a"></span><span class="swatch" style="background:#7b7b7b"></span><span class="swatch" style="background:#a9ff9f"></span><span class="swatch" style="background:#706deb"></span><span class="swatch" style="background:#b2b2b2"></span>
+</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="editor">
+<h2>4. The Drawing Editor</h2>
+<h3>Sprite mode</h3>
+<p>Choose between <strong>Single color</strong> and <strong>Multicolor</strong>. The grid automatically changes from 24 columns to 12 double-width columns.</p>
+<h3>Color palettes</h3>
+<p>Each palette controls one role in the sprite:</p>
+<ul>
+<li><strong>Background color:</strong> the screen color displayed behind transparent sprite pixels.</li>
+<li><strong>Sprite color:</strong> the main or individual sprite color.</li>
+<li><strong>Multicolor 1 and 2:</strong> the two additional colors available in multicolor mode.</li>
+</ul>
+<p>Click a palette swatch to change that role. The selected color name and number are displayed below the palette.</p>
+<h3>Drawing color buttons</h3>
+<p>The vertical buttons beside the grid select <em>which color role</em> you paint with. Changing a palette selects the actual C64 color; clicking a drawing color button selects whether you are painting Background, Sprite, Multicolor 1 or Multicolor 2.</p>
+<p>The active drawing color has a yellow outline.</p>
+<h3>Drawing and erasing</h3>
+<ul>
+<li><strong>Draw:</strong> hold the left mouse button and move across the grid.</li>
+<li><strong>Erase:</strong> select Background, use the right mouse button, or hold <kbd>Alt</kbd> while drawing.</li>
+<li><strong>Continuous lines:</strong> fast mouse movement is interpolated, so lines should not become dotted.</li>
+</ul>
+<h3>Grid labels</h3>
+<p>The numbers around the grid identify rows and columns. Vertical white separators divide the sprite into its three 8-bit bytes per row. In multicolor mode, each group contains four editable double-width cells.</p>
+<h3>Previews</h3>
+<p><strong>8× preview</strong> enlarges the current frame while preserving hard pixel edges. <strong>Native 1:1</strong> shows the sprite at its real pixel dimensions.</p>
+<div class="note">The background color is a preview aid. Background cells are not opaque sprite pixels; on real hardware they are transparent and show the screen behind the sprite.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="tools">
+<h2>5. Editing Tools</h2>
+<div class="table-wrap"><table><thead><tr><th>Tool</th><th>What it does</th><th>Useful for</th></tr></thead><tbody>
+<tr><td>Undo</td><td>Restores the previous edit state.</td><td>Recovering from drawing or transformation mistakes.</td></tr>
+<tr><td>Redo</td><td>Reapplies an edit that was undone.</td><td>Moving forward through edit history.</td></tr>
+<tr><td>Clear</td><td>Replaces every cell in the current frame with Background.</td><td>Starting the current frame again.</td></tr>
+<tr><td>Invert</td><td>Reverses background and filled values in the current frame.</td><td>Creating negative or mask-like versions. Results are most predictable in single-color mode.</td></tr>
+<tr><td>Mirror H</td><td>Flips the frame horizontally.</td><td>Turning a left-facing sprite into a right-facing sprite.</td></tr>
+<tr><td>Mirror V</td><td>Flips the frame vertically.</td><td>Reflection and symmetry work.</td></tr>
+<tr><td>Rotate ↻ / ↺</td><td>Rotates the sprite clockwise or counter-clockwise within the 24×21 canvas.</td><td>Creating rotated variations. Because the canvas is not square, parts may be repositioned or clipped.</td></tr>
+<tr><td>← → ↑ ↓</td><td>Shifts the whole frame one cell in the selected direction.</td><td>Centering a sprite or adjusting animation alignment.</td></tr>
+</tbody></table></div>
+<div class="tip">For a walking animation, keep the character's body in nearly the same position in every frame. Use the shift buttons to correct frames that appear to jump.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="animation">
+<h2>6. Animation Frames</h2>
+<h3>Frame controls</h3>
+<div class="table-wrap"><table><thead><tr><th>Control</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>Previous / Next</td><td>Moves between frames without changing their order.</td></tr>
+<tr><td>New Frame</td><td>Adds a blank frame.</td></tr>
+<tr><td>Duplicate</td><td>Copies the current frame and adds the copy to the animation. This is often the fastest way to make small animation changes.</td></tr>
+<tr><td>Delete</td><td>Removes the current frame. The animation always keeps at least one frame.</td></tr>
+<tr><td>Play / Stop</td><td>Starts or stops the live animation preview.</td></tr>
+</tbody></table></div>
+<h3>Playback speed</h3>
+<p>Playback speed is measured in <strong>frames per second (FPS)</strong>. Lower values create slower animation. Higher values create faster animation. The editor accepts values from 1 to 50 FPS.</p>
+<h3>Playback modes</h3>
+<ul>
+<li><strong>Loop:</strong> after the last frame, playback returns to the first.</li>
+<li><strong>Ping-pong:</strong> frames play forward and then backward.</li>
+<li><strong>Play once:</strong> playback stops after the final frame.</li>
+</ul>
+<h3>Frame strip</h3>
+<p>The frame strip shows a thumbnail for every animation frame. Click a thumbnail to edit that frame. The active frame is highlighted.</p>
+<h3>Onion skin</h3>
+<p>Onion skin displays neighboring frames faintly behind the current frame. It helps you see how far an object moves between frames.</p>
+<ul>
+<li><strong>Previous frame:</strong> shows only the frame before the current one.</li>
+<li><strong>Next frame:</strong> shows only the frame after the current one.</li>
+<li><strong>Previous + next:</strong> shows both using different overlay colors.</li>
+<li><strong>Opacity:</strong> controls how strongly the overlays appear.</li>
+</ul>
+<div class="note">Onion skin is visible only in the drawing grid. It is never included in previews, binary files or exported code.</div>
+<h3>Live animation preview</h3>
+<p>The live preview plays the full frame sequence using the selected speed and playback mode. Its readout shows the current frame, FPS and whether playback is running.</p>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="binary">
+<h2>7. Binary Sprite Files</h2>
+<h3>Save Current .SPR</h3>
+<p>Downloads the current frame as a 64-byte file:</p>
+<ul><li>63 bytes of sprite graphics</li><li>1 padding byte</li></ul>
+<p>This is suitable for tools and programs that expect one standard C64 sprite block.</p>
+<h3>Save Animation .BIN</h3>
+<p>Downloads every frame in order. Each frame occupies one 64-byte block. A ten-frame animation therefore uses 640 bytes.</p>
+<h3>Load .SPR / .BIN</h3>
+<p>Select a binary sprite file from your computer:</p>
+<ul>
+<li>A normal single-sprite file loads into the current frame.</li>
+<li>A file containing two or more complete 64-byte blocks loads as an animation.</li>
+</ul>
+<div class="warning">Binary files contain pixel bits, but they do not normally store the editor's chosen C64 colors, playback speed or playback mode. Select the correct sprite mode and colors after loading when necessary.</div>
+<div class="note">The editor treats a file as a multi-frame animation when its size is at least 128 bytes and evenly divisible by 64.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="export">
+<h2>8. Export Wizard</h2>
+<p>The Export Wizard converts the current sprite or animation into code or data for another program. The output updates automatically when you edit the sprite or change export settings.</p>
+<h3>Common settings</h3>
+<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>Export target</td><td>Selects the destination language or MEGA65 program type.</td></tr>
+<tr><td>Export scope</td><td>Exports either all animation frames or only the current frame.</td></tr>
+<tr><td>Asset name</td><td>Creates labels, variable names or filenames. Use a short descriptive name such as <code>player_walk</code>.</td></tr>
+<tr><td>Bytes per line</td><td>Controls source-code formatting only. It does not change sprite data.</td></tr>
+<tr><td>First BASIC line</td><td>Sets the starting line number for numbered BASIC output.</td></tr>
+<tr><td>Sprite data address</td><td>Base memory address used by formats that generate pointer information.</td></tr>
+<tr><td>Sprite number</td><td>Selects the MEGA65 hardware sprite used for animation. When frames are treated as separate hardware sprites, this becomes the first sprite number and later frames use the following sprite numbers.</td></tr>
+<tr><td>MEGA65 coordinates</td><td>Sets the initial X,Y position, for example <code>40,80</code>. For separate hardware sprites, this is the position of the first sprite; the remaining sprites are arranged automatically.</td></tr>
+</tbody></table></div>
+
+<h3>MEGA65 BASIC 65 targets</h3>
+<div class="table-wrap"><table><thead><tr><th>Target</th><th>Use it when...</th><th>What you get</th></tr></thead><tbody>
+<tr><td>Runnable BASIC program</td><td>You want a complete demonstration that can be loaded and run.</td><td>A self-contained BASIC 65 program that displays one sprite, animates several frames on one hardware sprite, or displays the frames as separate hardware sprites.</td></tr>
+<tr><td>BASIC include with loader subroutine</td><td>You already have a BASIC 65 program and want reusable sprite loading code.</td><td>A protected loader subroutine, DATA and supporting arrays. Call the generated subroutine once with <code>GOSUB</code>.</td></tr>
+<tr><td>BASIC sprite DATA only</td><td>You want to write your own loader.</td><td>Sprite DATA and metadata without loader code.</td></tr>
+<tr><td>Standalone DATA loader</td><td>You want a simple loader-focused BASIC 65 example.</td><td>A small standalone BASIC program that reads and installs sprite data.</td></tr>
+</tbody></table></div>
+<div class="warning"><strong>BASIC include with loader subroutine</strong> reads from the BASIC DATA stream. Call it before other routines that also use <code>READ</code>, unless your program carefully controls DATA positions.</div>
+
+<h3>Frame usage in Runnable BASIC program</h3>
+<p>When <strong>Runnable BASIC program</strong> is selected, the export scope is set to <strong>All animation frames</strong>, and the project contains more than one frame, an additional choice appears:</p>
+<ul>
+<li><strong>Treat frames as animation:</strong> every frame is loaded into the same hardware sprite in sequence. Playback speed and playback mode control the generated animation.</li>
+<li><strong>Treat frames as separate hardware sprites:</strong> each frame is loaded into a different hardware sprite and displayed at the same time.</li>
+</ul>
+<p>In separate-sprite mode, <strong>Sprite number</strong> means the first hardware sprite. For example, choosing sprite 2 with four frames uses sprites 2, 3, 4 and 5. The first sprite uses the selected MEGA65 coordinates, and the following sprites are positioned automatically.</p>
+<div class="warning">The MEGA65 provides hardware sprites 0–7. If the selected first sprite leaves too few available sprite numbers for all frames, only the frames that fit can be displayed, and the Export Wizard shows a warning.</div>
+
+<h3>Commodore and assembler targets</h3>
+<div class="table-wrap"><table><thead><tr><th>Target</th><th>Output</th></tr></thead><tbody>
+<tr><td>Commodore BASIC DATA</td><td>Numbered BASIC DATA statements containing decimal byte values.</td></tr>
+<tr><td>KickAssembler</td><td>Assembler source using KickAssembler-style byte directives and labels.</td></tr>
+<tr><td>ACME</td><td>Assembler source formatted for ACME.</td></tr>
+<tr><td>64tass</td><td>Assembler source formatted for 64tass.</td></tr>
+<tr><td>ca65</td><td>Assembler source formatted for the ca65 toolchain.</td></tr>
+<tr><td>DASM</td><td>Assembler source formatted for DASM.</td></tr>
+<tr><td>C / cc65 array</td><td>A C byte array suitable for C or cc65 projects.</td></tr>
+<tr><td>Plain hexadecimal</td><td>Byte values written in hexadecimal form.</td></tr>
+<tr><td>Plain decimal</td><td>Byte values written as decimal numbers.</td></tr>
+<tr><td>Raw 64-byte sprite blocks</td><td>A downloadable binary containing one 64-byte block per exported unique sprite.</td></tr>
+</tbody></table></div>
+
+<h3>Export options</h3>
+<ul>
+<li><strong>Include frame labels:</strong> adds separate names for exported frames when the format supports them.</li>
+<li><strong>Include comments:</strong> adds explanatory comments to source-code formats.</li>
+<li><strong>Include 64th padding byte:</strong> writes complete 64-byte sprite blocks instead of only the 63 visible data bytes.</li>
+<li><strong>Generate sprite pointers:</strong> calculates pointer values from the chosen sprite data address.</li>
+<li><strong>Remove duplicate frames:</strong> stores identical frames only once and reuses them through the generated animation order.</li>
+</ul>
+<div class="tip">Keep <strong>Remove duplicate frames</strong> enabled for animations that pause on the same image or reuse frames. It can reduce memory use without changing playback.</div>
+<h3>Summary and warnings</h3>
+<p>The summary shows:</p>
+<ul><li>number of exported frames</li><li>number of unique sprite images after duplicate removal</li><li>total byte count</li></ul>
+<p>The warning box identifies settings that may need attention, such as mixed sprite modes, missing padding or an address that is not aligned to a 64-byte boundary.</p>
+<h3>Copy and download</h3>
+<p><strong>Copy Export</strong> copies text output to the clipboard. <strong>Download Export</strong> saves it with an appropriate extension such as <code>.bas</code>, <code>.asm</code>, <code>.c</code>, <code>.txt</code> or <code>.bin</code>.</p>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="import">
+<h2>9. Data Import</h2>
+<p>Data Import turns pasted byte values into sprite pixels. The parser accepts mixed surrounding text and recognizes:</p>
+<ul>
+<li>hexadecimal values beginning with <code>$</code>, such as <code>$FF</code></li>
+<li>hexadecimal values beginning with <code>0x</code>, such as <code>0xFF</code></li>
+<li>decimal values from 0 to 255</li>
+</ul>
+<div class="terminal">Example hexadecimal:
+$18,$3C,$7E,$FF,$FF,$7E,$3C,$18
+
+Example decimal:
+24,60,126,255,255,126,60,24</div>
+<h3>Importing one frame</h3>
+<p>Set Export scope to <strong>Current frame only</strong>, paste at least 63 valid byte values, and click <strong>Import Data</strong>. The first 63 bytes replace the current frame.</p>
+<h3>Importing several frames</h3>
+<p>Set Export scope to <strong>All animation frames</strong>. If at least 126 valid bytes are found, the importer divides the data into groups of 63 bytes and creates multiple frames.</p>
+<div class="warning">The text importer groups frames by 63 graphic bytes, not by 64-byte padded blocks. Padding values in pasted data may therefore shift later frames. Use the binary loader for padded <code>.SPR</code> or animation <code>.BIN</code> files.</div>
+<div class="note">The importer uses the sprite mode currently selected in the editor. It cannot determine single-color or multicolor mode from raw bytes alone.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="byte-map">
+<h2>10. Row / Byte Map</h2>
+<p>The Row / Byte Map shows the three bytes generated for each sprite row. This is useful for learning how the visible pixels become binary data and for checking individual bytes while programming.</p>
+<p>Use the <strong>Byte table</strong> menu to show or hide the map. Each row corresponds to one horizontal line in the sprite. The three values correspond to the left, middle and right 8-bit groups.</p>
+<div class="terminal">ROW 00   BYTE 1   BYTE 2   BYTE 3
+ROW 01   BYTE 1   BYTE 2   BYTE 3
+...
+ROW 20   BYTE 1   BYTE 2   BYTE 3</div>
+<p>In single-color mode, one bit represents one pixel. In multicolor mode, each pair of bits represents one double-width color value.</p>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="shortcuts">
+<h2>11. Keyboard and Mouse Shortcuts</h2>
+<div class="table-wrap"><table><thead><tr><th>Shortcut</th><th>Action</th></tr></thead><tbody>
+<tr><td>Left mouse drag</td><td>Draw continuously with the active drawing color.</td></tr>
+<tr><td>Right mouse drag</td><td>Erase to Background.</td></tr>
+<tr><td><kbd>Alt</kbd> + draw</td><td>Erase to Background.</td></tr>
+<tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>Undo. On macOS, use <kbd>Cmd</kbd> + <kbd>Z</kbd>.</td></tr>
+<tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></td><td>Redo. On macOS, use <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>.</td></tr>
+<tr><td><kbd>Ctrl</kbd> + <kbd>Y</kbd></td><td>Redo.</td></tr>
+<tr><td><kbd>←</kbd></td><td>Select the previous animation frame.</td></tr>
+<tr><td><kbd>→</kbd></td><td>Select the next animation frame.</td></tr>
+<tr><td><kbd>Space</kbd></td><td>Start or stop animation playback.</td></tr>
+</tbody></table></div>
+<div class="note">Keyboard shortcuts are ignored while the cursor is inside an input field, menu or text area. This prevents editing text from unexpectedly changing frames.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="workflows">
+<h2>12. Example Workflows</h2>
+<h3>A. Create a mirrored walking animation</h3>
+<div class="steps">
+<div class="step">Draw the first walking pose.</div>
+<div class="step">Click <strong>Duplicate</strong> and modify the legs and arms.</div>
+<div class="step">Repeat until the movement looks smooth.</div>
+<div class="step">Enable Onion skin to compare neighboring poses.</div>
+<div class="step">Use the shift buttons to keep the character aligned.</div>
+<div class="step">Preview the animation in Loop mode.</div>
+<div class="step">Export or save the animation.</div>
+<div class="step">To make a version facing the opposite direction, mirror each required frame horizontally.</div>
+</div>
+<h3>B. Create a MEGA65 BASIC demonstration</h3>
+<div class="steps">
+<div class="step">Create one or more sprite frames.</div>
+<div class="step">Choose <strong>Runnable BASIC program</strong>.</div>
+<div class="step">If several frames are selected, choose whether they should be treated as an animation or as separate hardware sprites.</div>
+<div class="step">Set the sprite number and initial X,Y coordinates. In separate-sprite mode, the sprite number is the first hardware sprite.</div>
+<div class="step">Keep duplicate removal enabled for animations unless you need every frame stored separately.</div>
+<div class="step">Click <strong>Download Export</strong>.</div>
+<div class="step">Transfer the resulting <code>.bas</code> file to your MEGA65 environment and run it.</div>
+</div>
+<h3>C. Add sprites to an existing BASIC 65 program</h3>
+<div class="steps">
+<div class="step">Choose <strong>BASIC include with loader subroutine</strong>.</div>
+<div class="step">Copy or download the generated BASIC.</div>
+<div class="step">Merge the generated lines into your program without creating line-number conflicts.</div>
+<div class="step">Call the loader once with the generated <code>GOSUB</code> line before other code that consumes DATA.</div>
+<div class="step">Use the created arrays and sprite information in your own program logic.</div>
+</div>
+<h3>D. Use the sprite in assembler</h3>
+<div class="steps">
+<div class="step">Choose the assembler target that matches your toolchain.</div>
+<div class="step">Choose Current frame or All animation frames.</div>
+<div class="step">Set a valid asset name.</div>
+<div class="step">Enable frame labels and comments if you want readable source.</div>
+<div class="step">Copy or download the output and include it in your assembler project.</div>
+</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="troubleshooting">
+<h2>13. Troubleshooting</h2>
+<h3>My sprite looks like random noise after import</h3>
+<p>Check that the imported values are real sprite bytes, that at least 63 bytes are present, and that the editor is using the correct single-color or multicolor mode.</p>
+<h3>Later imported animation frames are shifted or corrupted</h3>
+<p>You may have pasted 64-byte padded blocks into the text importer, which expects 63 graphic bytes per frame. Load the file with <strong>Load .SPR / .BIN</strong> instead.</p>
+<h3>The colors are wrong after loading a binary file</h3>
+<p>Raw sprite data usually does not include color settings. Select the required background, sprite and multicolor values manually.</p>
+<h3>The sprite is visible in the editor but not on hardware</h3>
+<p>Check the generated program's sprite number, coordinates, display enable state, data address and sprite mode. Coordinates outside the visible area can make a correctly loaded sprite appear missing.</p>
+<h3>The exported pointer looks wrong</h3>
+<p>Sprite pointers refer to 64-byte blocks. Use a base address divisible by 64. The Export Wizard warns when the address is not aligned.</p>
+<h3>The include loader gives RETURN WITHOUT GOSUB</h3>
+<p>The generated include is designed to be entered through its loader subroutine using <code>GOSUB</code>. Keep its protective jump and call the documented loader line from your main program.</p>
+<h3>Undo or shortcuts do not work</h3>
+<p>Click outside any text field or menu first. Shortcuts are intentionally disabled while an input control is active.</p>
+<h3>The animation appears to jump</h3>
+<p>The subject may not be aligned consistently between frames. Enable Onion skin and use the shift buttons to keep a stable reference point.</p>
+<h3>Multicolor pixels look too wide</h3>
+<p>This is correct C64 behavior. A multicolor sprite has 12 editable horizontal cells, and each one occupies two hardware pixels.</p>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+
+<section id="reference">
+<h2>14. Quick Reference</h2>
+<div class="table-wrap"><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>
+<tr><td>Sprite dimensions</td><td>24×21 pixels</td></tr>
+<tr><td>Single-color editor grid</td><td>24×21 cells</td></tr>
+<tr><td>Multicolor editor grid</td><td>12×21 double-width cells</td></tr>
+<tr><td>Graphic bytes per sprite</td><td>63</td></tr>
+<tr><td>Standard padded sprite block</td><td>64 bytes</td></tr>
+<tr><td>Bytes per row</td><td>3</td></tr>
+<tr><td>C64 palette</td><td>16 colors</td></tr>
+<tr><td>Playback range</td><td>1–50 FPS</td></tr>
+<tr><td>Hardware sprite numbers in MEGA65 controls</td><td>0–7</td></tr>
+<tr><td>Text import values</td><td><code>$00–$FF</code>, <code>0x00–0xFF</code>, or decimal 0–255</td></tr>
+</tbody></table></div>
+<h3>Recommended beginner choices</h3>
+<ul>
+<li>Use Single color for your first sprite.</li>
+<li>Use Duplicate instead of New Frame when building animation.</li>
+<li>Keep Include comments and Remove duplicate frames enabled.</li>
+<li>Use Runnable BASIC program for the easiest MEGA65 demonstration, whether you need one sprite, an animation or several simultaneous sprites.</li>
+<li>Use Save Current .SPR or Save Animation .BIN for exact binary sprite blocks.</li>
+</ul>
+<div class="tip">Save downloaded versions regularly while working. The editor is a browser tool, and the current feature set does not include a complete project file containing every editor setting.</div>
+<a class="back-top" href="#top">Back to top</a>
+</section>
+</main>
+</div>
+<footer class="footer">C64 SPRITE EDITOR DELUXE — USER GUIDE<br>STANDARD COMMODORE 64 SPRITES / MEGA65 BASIC 65 EXPORT</footer>
+</div>
+</body>
+</html>
