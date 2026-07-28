@@ -851,14 +851,17 @@ button:disabled { cursor: not-allowed; opacity: .48; }
                     const memCheck = calculateMemorySetup(AppState.sidInfo);
                     AppState.memorySetup = memCheck.setup;
 
-                    ui.sidStatus.innerHTML = `
-                        <div class="text-purple-400 font-bold mb-1">▶ ${title || 'Unknown SID'}</div>
-                        <div class="text-gray-500">BY: <span class="text-gray-300">${author || 'Unknown'}</span></div>
-                        <div class="text-gray-500 mt-1">L: $${loadAddr.toString(16).padStart(4,'0')} | I: $${initAddr.toString(16).padStart(4,'0')} | P: $${playAddr.toString(16).padStart(4,'0')}</div>
-                        <div class="text-purple-400/80 text-xs mt-1 font-bold">TIMING: ${useCia ? 'CIA 1 Timer (60Hz)' : 'VBI Raster (50Hz)'}</div>
-                        <div class="text-cyan-400 text-xs mt-2 font-bold border-t border-white/5 pt-2">✓ ASSIGNED TO VIC-II BANK ${memCheck.setup.bank}</div>
-                        ${memCheck.warning}
+                  ui.sidStatus.innerHTML = `
+                      <div class="text-purple-400 font-bold mb-2">▶ ${title || 'Unknown SID'}</div>
+                      <div class="text-gray-300 mb-2">By: ${author || 'Unknown'}</div>
+                      <div>Load: $${loadAddr.toString(16).padStart(4,'0')}</div>
+                      <div>Init:&nbsp;&nbsp;$${initAddr.toString(16).padStart(4,'0')}</div>
+                      <div>Play:&nbsp;$${playAddr.toString(16).padStart(4,'0')}</div>
+                      <div class="mt-2">Timing: ${useCia ? 'CIA Timer (60 Hz)' : 'VBI Raster (50 Hz)'}</div>
+                      <div class="mt-1">VIC-II Bank: ${memCheck.setup.bank}</div>
+                      ${memCheck.warning}
                     `;
+
                     ui.sidStatus.classList.remove('hidden'); ui.sidStatus.classList.add('flex');
                     ui.sidPlayerControls.classList.remove('hidden');
                     showMessage("SID file parsed successfully.", "success");
