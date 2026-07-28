@@ -326,7 +326,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 </label>
 <div class="note">When activated, the file is loaded when the user presses SPACE. Enter the filename without .PRG.</div>
 </div><div class="filename-row">
-<input aria-label="Output filename" id="filename-input" type="text" value="blokify2"/>
+<input aria-label="Output filename" id="filename-input" type="text" value="demo"/>
 <span class="filename-ext">.prg</span>
 </div><button class="primary full-button" disabled="" id="btn-export">Compile to PRG</button></section>
 <div class="system-message hidden" id="system-message"></div>
@@ -1366,7 +1366,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
             const blob = new Blob([prgData], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const userFilename = ui.filenameInput.value.trim() || 'blokify2';
+            const userFilename = ui.filenameInput.value.trim() || 'demo';
             a.href = url; a.download = userFilename + '.prg';
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
