@@ -781,7 +781,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
                 return;
             }
 
-            showMessage("Kun Koala-filer (.KLA eller .KOA) understøttes i denne version.", "error");
+            showMessage("Only Koala-files (.KLA or .KOA) are supported.", "error");
             ui.imageUpload.value = '';
             return;
 
@@ -1114,7 +1114,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
             let setup = AppState.memorySetup;
             if (scrollEnabled && !(setup.bank === 0 || setup.bank === 2)) {
-                showMessage("Something is wrong. Probably the selected SID forces the imageto another VIC-bank - try another SID.", "error");
+                showMessage("Something is wrong. Probably the selected SID forces the image to another VIC-bank - try another SID.", "error");
                 return;
             }
 
