@@ -169,12 +169,14 @@ body.multicolor-grid .column-label{width:36px}
 <h2>Sprite Editor</h2>
 <div class="controls">
 <label>Sprite mode<select id="mode"><option value="single">Single color (24×21)</option><option value="multi">Multicolor (12×21 double pixels)</option></select></label>
+<p>
 <select id="brush" aria-label="Active drawing color"><option value="1">Sprite color</option></select>
 <div class="palette-control">Background color<select id="bgColor"></select><div class="palette-grid" data-select="bgColor"></div><span class="palette-value" data-value="bgColor"></span></div>
 <div class="palette-control">Sprite color<select id="spriteColor"></select><div class="palette-grid" data-select="spriteColor"></div><span class="palette-value" data-value="spriteColor"></span></div>
 <div class="palette-control multi-only">Multicolor 1<select id="multi1Color"></select><div class="palette-grid" data-select="multi1Color"></div><span class="palette-value" data-value="multi1Color"></span></div>
 <div class="palette-control multi-only">Multicolor 2<select id="multi2Color"></select><div class="palette-grid" data-select="multi2Color"></div><span class="palette-value" data-value="multi2Color"></span></div>
 </div>
+</p>
 <div class="editor-workspace">
 <div id="sprite-grid-wrap"><div></div><div id="column-labels" aria-hidden="true"></div><div id="row-labels" aria-hidden="true"></div><div id="editor" aria-label="Sprite drawing grid"></div></div>
 <div id="activeColors" class="active-colors" aria-label="Active drawing colors"><div class="active-colors-title">Drawing color</div></div>
