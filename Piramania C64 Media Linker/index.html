@@ -72,11 +72,17 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(330px, .8fr);
+  grid-template-columns: 1fr;
   gap: 18px;
-  align-items: start;
 }
-.stack { display: grid; gap: 18px; }
+.top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.top-grid > .card { height: 100%; }
+.stack { display: grid; grid-template-columns: 1fr; gap: 18px; }
 .card {
   padding: 20px;
   color: var(--ink);
@@ -235,7 +241,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 @media (max-width: 880px) {
   body { padding: 14px; }
-  .layout { grid-template-columns: 1fr; }
+  .top-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .hero, .card { padding: 16px; box-shadow: 5px 5px 0 rgba(0,0,0,.28); }
@@ -253,6 +259,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 <p class="subtitle">Combine a Koala image, SID music and scrolltext in a single C64 PRG file.</p>
 </header>
 <main class="layout">
+<div class="top-grid">
 <section class="card preview-card">
 <div class="preview-label" id="view-status">Live C64 / Koala preview</div>
 <div class="crt-bezel">
@@ -263,7 +270,6 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 <button class="secondary" disabled="" id="btn-reset-view">Reset view</button>
 </div>
 </section>
-<div class="stack">
 <section class="card">
 <h2><span class="section-number">01.</span> Visuals / Koala</h2>
 <label>
@@ -309,6 +315,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 </div>
 <label class="checkbox-row"><input id="match-border-scroll-input" type="checkbox"/>Match border to scroll background</label>
 </section>
+</div>
+<div class="stack">
 <section class="card">
 <h2><span class="section-number">02.</span> Audio</h2>
 <label>
@@ -326,17 +334,25 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 <label>Scroll text (max 500 chars)
           <textarea id="scrolltext-input" maxlength="500" placeholder="type your scrolltext here." rows="3"></textarea>
 </label>
-<div class="note">The scroller overwrites the last 8 rows of pixels of the image. Use lowercase only</div>
+<div class="note">The scroller overwrites the last 8 rows of pixels of the image. Uppercase and lowercase letters are supported.</div>
 
 
 
 
 </section><section class="card"><h2><span class="section-number">04.</span> Export</h2><label class="checkbox-row"><input id="autoload-enabled-input" type="checkbox"/>Load another file with SPACE</label><div class="field opacity-50" id="autoload-options">
 <label>Filename to be loaded from device 8
-            <input disabled="" id="autoload-filename-input" maxlength="16" placeholder="Fx NEXT" type="text"/>
+            <input disabled="" id="autoload-filename-input" maxlength="16" placeholder="E.g. next" type="text"/>
 </label>
+<label>Start address (SYS address)
+            <input disabled="" id="autoload-start-address-input" maxlength="6" placeholder="E.g. 2061 or $080D" type="text" value="2061"/>
+</label>
+<label>Detect SYS address from a PRG file
+            <input accept=".prg" disabled="" id="autoload-prg-upload" type="file"/>
+</label>
+<div class="note" id="autoload-prg-status">Select a PRG file to detect the first SYS address in its BASIC loader. The detected value can still be edited manually.</div>
 <div class="note">When activated, the file is loaded when the user presses SPACE. Enter the filename without .PRG.</div>
-</div><div class="filename-row">
+<div class="note">Enter the number used by the loaded program's SYS command, for example 2061. Decimal and hexadecimal values such as $080D or 0x080D are accepted. This direct-start method is intended for machine-code programs with a known entry address; ordinary BASIC programs are not supported.</div>
+</div><label class="checkbox-row"><input id="crunch-enabled-input" type="checkbox" checked/>Crunch PRG with Exomizer (recommended)</label><div class="note">Crunching runs locally in your browser. The uncrunched PRG is used automatically if Exomizer cannot be loaded.</div><div class="filename-row">
 <input aria-label="Output filename" id="filename-input" type="text" value="demo"/>
 <span class="filename-ext">.prg</span>
 </div><button class="primary full-button" disabled="" id="btn-export">Compile to PRG</button></section>
@@ -432,8 +448,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
             sidPlayerControls: document.getElementById('sid-player-controls'),
             scrollTextInput: document.getElementById('scrolltext-input'),
             autoloadFilenameInput: document.getElementById('autoload-filename-input'),
+            autoloadStartAddressInput: document.getElementById('autoload-start-address-input'),
+            autoloadPrgUpload: document.getElementById('autoload-prg-upload'),
+            autoloadPrgStatus: document.getElementById('autoload-prg-status'),
             autoloadEnabledInput: document.getElementById('autoload-enabled-input'),
-            autoloadOptions: document.getElementById('autoload-options')
+            autoloadOptions: document.getElementById('autoload-options'),
+            crunchEnabledInput: document.getElementById('crunch-enabled-input')
         };
 
         function showMessage(msg, type = 'info') {
@@ -909,18 +929,114 @@ button:disabled { cursor: not-allowed; opacity: .48; }
             if (AppState.sidPlayer) { try { AppState.sidPlayer.pause(); } catch(err) {} }
         });
 
-        function exportPRG() {
+        const EXOMIZER_JS_URL = 'https://cdn.jsdelivr.net/gh/jaammees/lvllvl@main/dist/c64/exomizer/exomizer.js';
+        const EXOMIZER_WASM_URL = 'https://cdn.jsdelivr.net/gh/jaammees/lvllvl@main/dist/c64/exomizer/exomizer.wasm';
+
+        function c64Blocks(byteLength) {
+            return Math.ceil(byteLength / 254);
+        }
+
+        function crunchPRGWithExomizer(prgData) {
+            return new Promise((resolve, reject) => {
+                const workerSource = `
+                    const EXOMIZER_JS_URL = ${JSON.stringify(EXOMIZER_JS_URL)};
+                    const EXOMIZER_WASM_URL = ${JSON.stringify(EXOMIZER_WASM_URL)};
+                    importScripts(EXOMIZER_JS_URL);
+                    onmessage = function(event) {
+                        const input = new Uint8Array(event.data);
+                        let stderr = '';
+                        const options = {
+                            locateFile: function(path) {
+                                return path.endsWith('.wasm') ? EXOMIZER_WASM_URL : path;
+                            },
+                            preRun: [function() {
+                                options.FS.init(
+                                    function() { return null; },
+                                    function() {},
+                                    function(c) { if (c !== null) stderr += String.fromCharCode(c); }
+                                );
+                                options.FS.writeFile('input.prg', input, { encoding: 'binary' });
+                            }],
+                            arguments: ['sfx', 'sys', 'input.prg', '-o', 'output.prg'],
+                            postRun: [function() {
+                                try {
+                                    const output = options.FS.readFile('output.prg', { encoding: 'binary' });
+                                    const result = output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength);
+                                    postMessage({ ok: true, result: result, stderr: stderr }, [result]);
+                                } catch (err) {
+                                    postMessage({ ok: false, error: stderr || err.message || 'Exomizer did not create an output file.' });
+                                }
+                            }]
+                        };
+                        try {
+                            Exomizer(options);
+                        } catch (err) {
+                            postMessage({ ok: false, error: err.message || String(err) });
+                        }
+                    };
+                `;
+                const workerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'application/javascript' }));
+                const worker = new Worker(workerUrl);
+                const cleanup = () => { worker.terminate(); URL.revokeObjectURL(workerUrl); };
+                const timeout = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('Exomizer timed out.'));
+                }, 120000);
+                worker.onmessage = (event) => {
+                    clearTimeout(timeout);
+                    const data = event.data || {};
+                    cleanup();
+                    if (data.ok) resolve(new Uint8Array(data.result));
+                    else reject(new Error(data.error || 'Exomizer failed.'));
+                };
+                worker.onerror = (event) => {
+                    clearTimeout(timeout);
+                    cleanup();
+                    reject(new Error(event.message || 'Could not start Exomizer.'));
+                };
+                const transferable = prgData.buffer.slice(prgData.byteOffset, prgData.byteOffset + prgData.byteLength);
+                worker.postMessage(transferable, [transferable]);
+            });
+        }
+
+        function downloadPRG(prgData, filename) {
+            const blob = new Blob([prgData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function exportPRG() {
             if (!AppState.bitmapRam || !AppState.screenRam) { showMessage("Process the image first!", "error"); return; }
 
             const sid = AppState.sidInfo;
             const scrollTextRaw = (ui.scrollTextInput ? ui.scrollTextInput.value : '').slice(0, 500);
             const scrollEnabled = scrollTextRaw.trim().length > 0;
             const autoloadRequested = !!(ui.autoloadEnabledInput && ui.autoloadEnabledInput.checked);
-            const autoloadNameRaw = (ui.autoloadFilenameInput ? ui.autoloadFilenameInput.value : '').trim().toUpperCase().slice(0, 16);
-            const autoloadEnabled = autoloadRequested && autoloadNameRaw.length > 0;
+            const autoloadNameRaw = (ui.autoloadFilenameInput ? ui.autoloadFilenameInput.value : '').trim().toLowerCase().slice(0, 16);
+            const autoloadStartRaw = (ui.autoloadStartAddressInput ? ui.autoloadStartAddressInput.value : '').trim();
+            let autoloadStartAddress = null;
+            if (/^\$[0-9a-fA-F]{1,4}$/.test(autoloadStartRaw)) {
+                autoloadStartAddress = parseInt(autoloadStartRaw.slice(1), 16);
+            } else if (/^0x[0-9a-fA-F]{1,4}$/i.test(autoloadStartRaw)) {
+                autoloadStartAddress = parseInt(autoloadStartRaw.slice(2), 16);
+            } else if (/^[0-9]{1,5}$/.test(autoloadStartRaw)) {
+                autoloadStartAddress = parseInt(autoloadStartRaw, 10);
+            }
+            const autoloadStartValid = Number.isInteger(autoloadStartAddress) && autoloadStartAddress >= 0 && autoloadStartAddress <= 0xFFFF;
+            const autoloadEnabled = autoloadRequested && autoloadNameRaw.length > 0 && autoloadStartValid;
 
             if (autoloadRequested && !autoloadNameRaw) {
-                showMessage("Enter file to be loaded, or disable SPACE-loader.", "warning");
+                showMessage("Enter the file to be loaded, or disable the SPACE loader.", "warning");
+                return;
+            }
+            if (autoloadRequested && !autoloadStartValid) {
+                showMessage("Enter a valid start address from 0 to 65535, for example 2061, $080D or 0x080D.", "warning");
                 return;
             }
 
@@ -974,8 +1090,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
             function petsciiScreenCode(ch) {
                 const c = ch.charCodeAt(0);
-                if (c >= 65 && c <= 90) return c - 64;          // A-Z
-                if (c >= 97 && c <= 122) return c - 96;         // a-z shown as C64 uppercase letters
+                if (c >= 65 && c <= 90) return c;               // A-Z in lowercase/uppercase character set
+                if (c >= 97 && c <= 122) return c - 96;         // a-z in lowercase/uppercase character set
                 if (c >= 48 && c <= 57) return c;               // 0-9
                 if (ch === ' ') return 32;
                 if (ch === '.') return 46;
@@ -1046,7 +1162,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
             const scrnVal = (setup.screen - bankBase) / 1024;
             const bmpVal = (setup.bitmap - bankBase) / 8192;
             const d018BitmapVal = (scrnVal << 4) | (bmpVal << 3);
-            const d018TextVal = (scrnVal << 4) | 0x04; // screen RAM + C64 character ROM at $1000/$9000 (char base bits = 2)
+            const d018TextVal = (scrnVal << 4) | 0x06; // screen RAM + lowercase/uppercase C64 character ROM at $1800/$9800
             const screenBottomRow = setup.screen + 24 * 40;
             const scrollVar = 0x0B00;
             const scrollPtr = 0x0B01; // two bytes, $0B01/$0B02
@@ -1136,10 +1252,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
                 lLdaImm(0x01); lLdxImm(0x08); lb(0xA0); lb(0x01); lJsr(0xFFBA); // SETLFS
                 lLdaImm(0x00); lLdxImm(0x00); lb(0xA0); lb(0x00); lJsr(0xFFD5); // LOAD
                 const errorBranchPos = ld.length + 1; lb(0xB0); lb(0x00);        // BCS error
-                lStxAbs(0x002D);                 // BASIC VARTAB end pointer
-                lb(0x8C); lw(0x002E);            // STY $002E
-                lJsr(0xA659);                    // reset BASIC execution pointer + CLR
-                lJmp(0xA7AE);                    // execute first BASIC statement
+                // Bypass BASIC completely and jump directly to the entry address
+                // supplied by the user (normally the value used by the program's SYS command).
+                lb(0x58);                         // CLI
+                lJmp(autoloadStartAddress);       // direct machine-code start
 
                 const errorOffset = ld.length;
                 ld[errorBranchPos] = (errorOffset - (errorBranchPos + 1)) & 0xFF;
@@ -1377,23 +1493,143 @@ button:disabled { cursor: not-allowed; opacity: .48; }
             prgData[0] = startAddr & 0xFF; prgData[1] = startAddr >> 8;
             for(let i=0; i<prgSize; i++) prgData[2 + i] = mem[startAddr + i];
 
-            const blob = new Blob([prgData], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
             const userFilename = ui.filenameInput.value.trim() || 'demo';
-            a.href = url; a.download = userFilename + '.prg';
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showMessage("Successfully exported " + a.download + (scrollEnabled ? " with scrolltext!" : "!") , "success");
+            const outputFilename = userFilename + '.prg';
+            const rawBytes = prgData.length;
+            let outputData = prgData;
+            let crunched = false;
+
+            if (ui.crunchEnabledInput && ui.crunchEnabledInput.checked) {
+                const oldButtonText = ui.btnExport.textContent;
+                ui.btnExport.disabled = true;
+                ui.btnExport.textContent = 'Crunching...';
+                showMessage('Compiling complete. Exomizer is crunching the PRG...', 'info');
+                try {
+                    const candidate = await crunchPRGWithExomizer(prgData);
+                    if (candidate.length < prgData.length) {
+                        outputData = candidate;
+                        crunched = true;
+                    } else {
+                        console.warn('Exomizer output was not smaller; exporting original PRG.');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showMessage('Exomizer could not be loaded or failed. Exporting the normal PRG instead. ' + err.message, 'warning');
+                } finally {
+                    ui.btnExport.disabled = false;
+                    ui.btnExport.textContent = oldButtonText;
+                }
+            }
+
+            downloadPRG(outputData, outputFilename);
+            if (crunched) {
+                const saved = rawBytes - outputData.length;
+                const percent = Math.round(saved * 100 / rawBytes);
+                showMessage('Exported ' + outputFilename + ': ' + c64Blocks(rawBytes) + ' blocks → ' + c64Blocks(outputData.length) + ' blocks (' + percent + '% smaller).', 'success');
+            } else {
+                showMessage('Exported ' + outputFilename + ' uncrunched: ' + c64Blocks(outputData.length) + ' blocks.', 'success');
+            }
+        }
+
+
+        function detectSysAddressFromPrg(data) {
+            if (!(data instanceof Uint8Array) || data.length < 8) return null;
+
+            const loadAddress = data[0] | (data[1] << 8);
+            let offset = 2;
+            let expectedAddress = loadAddress;
+            let lineCount = 0;
+
+            while (offset + 4 < data.length && lineCount < 100) {
+                const lineAddress = expectedAddress;
+                const nextLineAddress = data[offset] | (data[offset + 1] << 8);
+                if (nextLineAddress === 0) break;
+
+                offset += 4; // Skip next-line pointer and line number.
+                let foundEnd = false;
+
+                while (offset < data.length) {
+                    const token = data[offset++];
+                    if (token === 0) {
+                        foundEnd = true;
+                        break;
+                    }
+
+                    if (token === 0x9E) { // BASIC V2 SYS token.
+                        while (offset < data.length && (data[offset] === 0x20 || data[offset] === 0xA0)) offset++;
+                        let digits = '';
+                        while (offset < data.length && data[offset] >= 0x30 && data[offset] <= 0x39) {
+                            digits += String.fromCharCode(data[offset++]);
+                        }
+                        if (digits.length) {
+                            const value = parseInt(digits, 10);
+                            if (value >= 0 && value <= 0xFFFF) return value;
+                        }
+                    }
+                }
+
+                if (!foundEnd) break;
+                const consumedBytes = offset - 2;
+                expectedAddress = loadAddress + consumedBytes;
+                if (nextLineAddress < lineAddress || nextLineAddress > 0xFFFF) break;
+                lineCount++;
+            }
+            return null;
+        }
+
+        function prgBaseName(filename) {
+            return String(filename || '').replace(/^.*[\\/]/, '').replace(/\.prg$/i, '').trim();
+        }
+
+        async function handleAutoloadPrgSelection() {
+            const file = ui.autoloadPrgUpload && ui.autoloadPrgUpload.files ? ui.autoloadPrgUpload.files[0] : null;
+            if (!file) {
+                if (ui.autoloadPrgStatus) ui.autoloadPrgStatus.textContent = 'Select a PRG file to detect the first SYS address in its BASIC loader. The detected value can still be edited manually.';
+                return;
+            }
+
+            try {
+                const data = new Uint8Array(await file.arrayBuffer());
+                const address = detectSysAddressFromPrg(data);
+                const baseName = prgBaseName(file.name).toLowerCase().slice(0, 16);
+                if (baseName && ui.autoloadFilenameInput) ui.autoloadFilenameInput.value = baseName;
+
+                if (address === null) {
+                    if (ui.autoloadPrgStatus) ui.autoloadPrgStatus.textContent = 'No SYS address was found in the PRG BASIC loader. Enter the start address manually.';
+                    showMessage('No SYS address was found. Please enter the start address manually.', 'warning');
+                    return;
+                }
+
+                if (ui.autoloadStartAddressInput) ui.autoloadStartAddressInput.value = String(address);
+                const hex = '$' + address.toString(16).toUpperCase().padStart(4, '0');
+                if (ui.autoloadPrgStatus) ui.autoloadPrgStatus.textContent = 'Detected SYS ' + address + ' (' + hex + ') from ' + file.name + '. You can edit the value manually.';
+                showMessage('Detected start address ' + address + ' (' + hex + ').', 'success');
+            } catch (err) {
+                console.error(err);
+                if (ui.autoloadPrgStatus) ui.autoloadPrgStatus.textContent = 'The PRG file could not be read. Enter the start address manually.';
+                showMessage('The selected PRG file could not be read.', 'error');
+            }
+        }
+
+        if (ui.autoloadFilenameInput) {
+            ui.autoloadFilenameInput.addEventListener('input', () => {
+                const start = ui.autoloadFilenameInput.selectionStart;
+                const end = ui.autoloadFilenameInput.selectionEnd;
+                ui.autoloadFilenameInput.value = ui.autoloadFilenameInput.value.toLowerCase();
+                if (start !== null && end !== null) ui.autoloadFilenameInput.setSelectionRange(start, end);
+            });
         }
 
         if (ui.autoloadEnabledInput) {
             const updateAutoloadUi = () => {
                 const enabled = ui.autoloadEnabledInput.checked;
                 ui.autoloadFilenameInput.disabled = !enabled;
+                if (ui.autoloadStartAddressInput) ui.autoloadStartAddressInput.disabled = !enabled;
+                if (ui.autoloadPrgUpload) ui.autoloadPrgUpload.disabled = !enabled;
                 if (ui.autoloadOptions) ui.autoloadOptions.classList.toggle('opacity-50', !enabled);
             };
             ui.autoloadEnabledInput.addEventListener('change', updateAutoloadUi);
+            if (ui.autoloadPrgUpload) ui.autoloadPrgUpload.addEventListener('change', handleAutoloadPrgSelection);
             updateAutoloadUi();
         }
 
